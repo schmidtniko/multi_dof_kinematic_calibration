@@ -25,6 +25,4 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
   # bin dir for executable targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-
-add_subdirectory(cameraSurveyingWithAprilTags)
-add_subdirectory(ptuCalibration)
+add_subdirectory(multi_dof_kinematic_calibration)
