@@ -7,7 +7,8 @@
 int main()
 {
 
-    std::string rootPath = "/Users/stephanmanthe/ownCloud/Uni/Master/Forschungsarbeit/ptuImages/lisa/firstTest/";
+    std::string rootPath
+        = "/Users/stephanmanthe/ownCloud/Uni/Master/Forschungsarbeit/ptuImages/lisa/firstTest/";
 
 #if 0
     std::string filePathPanTiltData = rootPath + "panTiltData.json"
@@ -49,15 +50,9 @@ int main()
     std::string observationsPath = rootPath + "/irImage_detectedTags.json";
     std::string reconstructionPath = rootPath + "/reconstructedObjects.json";
 
-     
-
-
-
 
 #endif
 
 
-
-
-	return 0;
+    return 0;
 }

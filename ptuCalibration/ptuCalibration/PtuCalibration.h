@@ -16,16 +16,16 @@
 
 class PtuCalibration
 {
-    public:
-        std::map<int, camSurv::CameraModel> 
-            reconstructCameras(const std::map<std::string, camSurv::TagImg>& tagImgName2tagImg,
-                               const std::map<int, camSurv::ReconstructedTag>& reconstructedTags);
-            
-        Eigen::Matrix3d K; 
-        Eigen::Matrix<double, 5, 1> distCoefficents;
+public:
+    std::map<int, camSurv::CameraModel> reconstructCameras(
+        const std::map<std::string, camSurv::TagImg>& tagImgName2tagImg,
+        const std::map<int, camSurv::ReconstructedTag>& reconstructedTags);
 
-    protected:
-        std::map<int, camSurv::CameraModel> reconstructedCameras;
+    Eigen::Matrix3d K;
+    Eigen::Matrix<double, 5, 1> distCoefficents;
+
+protected:
+    std::map<int, camSurv::CameraModel> reconstructedCameras;
 };
 
 #endif

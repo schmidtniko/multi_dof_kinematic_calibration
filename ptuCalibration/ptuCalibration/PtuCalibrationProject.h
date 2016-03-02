@@ -1,10 +1,3 @@
-/*
- *  PtuCalibrationProject.h
- *
- *  Created on: 30.01.16
- *      Author: Stephan Manthe
- */
-
 #ifndef PTUCALIBRATIONPROJECT_H_
 
 #include "cameraSurveyingWithAprilTags/Camera.h"
@@ -14,9 +7,9 @@
 
 struct PtuCalibrationProject
 {
-	void processFolder(const std::string& folder);
+    void processFolder(const std::string& folder);
 
-	// Reconstruction
+    // Reconstruction
     std::map<int, camSurv::ReconstructedTag> reconstructedTags;
 
     // Pan Tilt data
@@ -25,11 +18,9 @@ struct PtuCalibrationProject
     // Pan Tilt Image Detections
     camSurv::DetectionResult ptuDetectionResult;
 
-    bool computeRelativeCameraPoseFromImg(int imageId,
-                                          const Eigen::Matrix3d& K,
-                                          const Eigen::Matrix<double, 5, 1>& distCoefficients,
-                                          Eigen::Quaterniond& q,
-                                          Eigen::Vector3d& t) const;
+    bool computeRelativeCameraPoseFromImg(int imageId, const Eigen::Matrix3d& K,
+        const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
+        Eigen::Vector3d& t) const;
 
 
     /////////
@@ -40,10 +31,10 @@ struct PtuCalibrationProject
 
     struct DebugVis
     {
-    	camSurv::Camera cam;
+        camSurv::Camera cam;
     };
 
     std::vector<DebugVis> debugVis;
 };
 
-#endif 
+#endif
