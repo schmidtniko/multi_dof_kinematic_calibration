@@ -1,10 +1,10 @@
-#include "ptuCalibration/PtuCalibrationProject.h"
+#include "multi_dof_kinematic_calibration/PtuCalibrationProject.h"
 
 #include <Eigen/Geometry>
 
-#include "cameraSurveyingWithAprilTags/ReconstructionIO.h"
-#include "cameraSurveyingWithAprilTags/DetectionIO.h"
-#include "cameraSurveyingWithAprilTags/eigenCVConversions.h"
+#include "visual_marker_mapping/ReconstructionIO.h"
+#include "visual_marker_mapping/DetectionIO.h"
+#include "visual_marker_mapping/eigenCVConversions.h"
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>

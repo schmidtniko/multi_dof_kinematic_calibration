@@ -1,4 +1,4 @@
-#include "ptuCalibration/PtuCalibration.h"
+#include "multi_dof_kinematic_calibration/PtuCalibration.h"
 #include <opencv2/opencv.hpp>
 #include "cameraSurveyingWithAprilTags/eigenCVConversions.h"
 #include <opencv2/core/eigen.hpp>

@@ -1,11 +1,11 @@
-#include "ptuCalibration/PtuImageCapture.h"
+#include "multi_dof_kinematic_calibration/PtuImageCapture.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Eigen/Core>
 
-#include "cameraSurveyingWithAprilTags/cameraUtilities.h"
+#include "visual_marker_mapping/cameraUtilities.h"
 
 void PtuImageCapture::startCapture(
     const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
