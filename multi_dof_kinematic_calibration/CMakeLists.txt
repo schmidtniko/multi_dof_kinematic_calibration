@@ -1,9 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
-project(ptuCalibration)
+project(multi_dof_kinematic_calibration)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../cameraSurveyingWithAprilTags/cameraSurveyingWithAprilTags/include/
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../cameraSurveyingWithAprilTags/fast_mit_apriltags/
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${Boost_INCLUDE_DIRS})
 
 
