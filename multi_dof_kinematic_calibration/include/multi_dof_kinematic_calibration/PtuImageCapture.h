@@ -1,7 +1,7 @@
 #ifndef PTUIMAGECAPTURE_H_
 #define PTUIMAGECAPTURE_H_
 
-#include "CameraModel.h"
+#include "visual_marker_mapping/CameraModel.h"
 
 #include <vector>
 #include <functional>

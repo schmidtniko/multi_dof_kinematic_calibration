@@ -1,9 +1,9 @@
 #ifndef PTUCALIBRATIONPROJECT_H_
 
-#include "Camera.h"
-#include "TagReconstructor.h"
-#include "TagDetector.h"
-#include "PtuImageCapture.h"
+#include "visual_marker_mapping/Camera.h"
+#include "visual_marker_mapping/TagReconstructor.h"
+#include "visual_marker_mapping/TagDetector.h"
+#include "multi_dof_kinematic_calibration/PtuImageCapture.h"
 
 struct PtuCalibrationProject
 {
