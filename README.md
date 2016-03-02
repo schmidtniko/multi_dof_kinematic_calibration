@@ -1,1 +1,3 @@
 # multi_dof_kinematic_calibration
+
+We are in the process of publishing our software for multi-DOF kinematic calibration. Please give us a few more days...
