@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
 
-#include "ptuImageCapture/PtuImageCapture.h"
-#include "cameraSurveyingWithAprilTags/TagReconstructor.h"
-#include "cameraSurveyingWithAprilTags/TagDetector.h"
+//#include "ptuImageCapture/PtuImageCapture.h"
+//#include "cameraSurveyingWithAprilTags/TagReconstructor.h"
+//#include "cameraSurveyingWithAprilTags/TagDetector.h"
 int main()
 {
 
