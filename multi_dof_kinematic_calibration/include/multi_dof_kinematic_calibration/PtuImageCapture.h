@@ -1,5 +1,5 @@
-#ifndef PTUIMAGECAPTURE_H_
-#define PTUIMAGECAPTURE_H_
+#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_PTUIMAGECAPTURE_H
+#define MULTI_DOF_KINEMATIC_CALIBRATION_PTUIMAGECAPTURE_H
 
 #include "visual_marker_mapping/CameraModel.h"
 
@@ -18,6 +18,8 @@
 //    int tiltTicks = 0;
 //};
 
+namespace multi_dof_kinematic_calibration
+{
 struct JointImageInfo
 {
     int locationId;
@@ -60,4 +62,6 @@ protected:
         const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
         double panAngle, double tiltAngle, int counter);
 };
+}
+
 #endif

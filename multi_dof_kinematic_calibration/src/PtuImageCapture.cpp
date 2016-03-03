@@ -7,6 +7,8 @@
 
 #include "visual_marker_mapping/CameraUtilities.h"
 
+namespace multi_dof_kinematic_calibration
+{
 void PtuImageCapture::startCapture(
     const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
     const std::string& rootdirPath, bool preferTilt)
@@ -220,4 +222,5 @@ void PtuImageCapture::exportPanTiltImages(const std::string& filePath)
 
     rootNode.add_child("joint_configurations", ptuInfoPt);
     pt::write_json(filePath, rootNode);
+}
 }

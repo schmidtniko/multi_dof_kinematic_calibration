@@ -1,10 +1,13 @@
-#ifndef PTUCALIBRATIONPROJECT_H_
+#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_PTUCALIBRATIONPROJECT_H
+#define MULTI_DOF_KINEMATIC_CALIBRATION_PTUCALIBRATIONPROJECT_H
 
 #include "visual_marker_mapping/Camera.h"
 #include "visual_marker_mapping/TagReconstructor.h"
 #include "visual_marker_mapping/TagDetector.h"
 #include "PtuImageCapture.h"
 
+namespace multi_dof_kinematic_calibration
+{
 struct PtuCalibrationProject
 {
     void processFolder(const std::string& folder);
@@ -50,5 +53,6 @@ struct PtuCalibrationProject
     };
     std::vector<JointData> jointData;
 };
+}
 
 #endif

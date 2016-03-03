@@ -18,6 +18,8 @@
 #include <iostream>
 #include <fstream>
 
+namespace multi_dof_kinematic_calibration
+{
 #if 0
 struct PTUPoseError {
  	PTUPoseError(const Eigen::Matrix<double,7,1>& camPose_origin) : camPose_origin(camPose_origin) {}
@@ -1478,8 +1480,7 @@ bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int i
     q = Eigen::Quaterniond(R);
     return true;
 }
-
-
 //-----------------------------------------------------------------------------
+}
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
