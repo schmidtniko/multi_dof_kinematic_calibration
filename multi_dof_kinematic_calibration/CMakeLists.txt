@@ -10,6 +10,9 @@ add_executable(${PROJECT_NAME}
                src/PtuCalibrationProject.cpp
                src/main.cpp)
 
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ../visual_marker_mapping/visual_marker_mapping/include/
                     ${Boost_INCLUDE_DIRS})
@@ -20,5 +23,3 @@ target_link_libraries(${PROJECT_NAME}
                       ${OpenCV_LIBS}
                       ${Boost_LIBRARIES})
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

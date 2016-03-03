@@ -1,58 +1,50 @@
+#include <ceres/ceres.h>
 #include <iostream>
-#include <string>
+#include <fstream>
+#include <chrono>
+#include "multi_dof_kinematic_calibration/PtuCalibrationProject.h"
+#include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
-//#include "ptuImageCapture/PtuImageCapture.h"
-//#include "cameraSurveyingWithAprilTags/TagReconstructor.h"
-//#include "cameraSurveyingWithAprilTags/TagDetector.h"
-int main()
+
+//------------------------------------------------------------------------------------------------------------
+namespace po = boost::program_options;
+po::variables_map loadParameters(int argc, char* argv[])
 {
+    po::options_description options("Allowed options");
+    po::options_description fileOptions("Options for the config file");
+    options.add_options()("help,?", "produces this help message")(
+        "project_path", po::value<std::string>()->required(), "Path to project to be processed");
 
-    std::string rootPath
-        = "/Users/stephanmanthe/ownCloud/Uni/Master/Forschungsarbeit/ptuImages/lisa/firstTest/";
-
-#if 0
-    std::string filePathPanTiltData = rootPath + "panTiltData.json"
-    PtuImageCapture ptuImageData;
-    ptuImageData.importPanTiltImages(filePath);
-    
-    std::string folderPath = ptuImageData.rootdirPath;
-    for(std::string cameraName : ptuImageData.usedCameras)
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, options), vm);
+    if (vm.count("help"))
     {
-        std::vector<std::string> filePaths;
-        for(auto img : ptuImageData.capturedImages)
-        {
-            std::string filePath = folderPath + "/" + cameraName +"/"+  img.imageNames[cameraName];
-            filePaths.push_back(filePath);
-        }
-
-        double tagWidth, tagHeight;
-        tagWidth =  0.116;
-        tagHeight = 0.117;
-
-        int visWidth, visHeight;
-        visWidth = 1500;
-        visHeight = 1000;
-
-        // TODO celanup, separate visualization, extraction and detection
-        std::string exportFilename = cameraName + "_detectedTags.json";
-        camSurv::TagDetector detector(folderPath,
-                                      "",
-                                      "detections/",
-                                      exportFilename,
-                                      visHeight,
-                                      visWidth,
-                                      tagWidth,
-                                      tagHeight);
-
-        detector.detectTags(filePaths, false);
+        std::cout << options << std::endl;
+        std::cout << fileOptions << std::endl;
+        exit(0);
     }
-#else
-    std::string observationsPath = rootPath + "/irImage_detectedTags.json";
-    std::string reconstructionPath = rootPath + "/reconstructedObjects.json";
 
+    po::notify(vm);
 
-#endif
+    return vm;
+}
+//------------------------------------------------------------------------------------------------------------
+int main(int argc, char* argv[])
+{
+    try
+    {
+        boost::program_options::variables_map vm = loadParameters(argc, argv);
 
+        const boost::filesystem::path project_path = vm["project_path"].as<std::string>();
 
+        PtuCalibrationProject proj;
+        proj.processFolder(project_path.string());
+
+    }
+    catch (const std::exception& ex)
+    {
+        std::cout << "An exception occurred: " << ex.what() << std::endl;
+    }
     return 0;
 }

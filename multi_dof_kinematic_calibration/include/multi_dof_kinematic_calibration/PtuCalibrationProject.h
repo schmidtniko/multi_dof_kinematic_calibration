@@ -1,26 +1,39 @@
+/*
+ *  PtuCalibrationProject.h
+ *
+ *  Created on: 30.01.16
+ *      Author: Stephan Manthe
+ */
+
 #ifndef PTUCALIBRATIONPROJECT_H_
 
 #include "visual_marker_mapping/Camera.h"
 #include "visual_marker_mapping/TagReconstructor.h"
 #include "visual_marker_mapping/TagDetector.h"
-#include "multi_dof_kinematic_calibration/PtuImageCapture.h"
+#include "PtuImageCapture.h"
 
 struct PtuCalibrationProject
 {
-    void processFolder(const std::string& folder);
+	void processFolder(const std::string& folder);
 
-    // Reconstruction
+    void optimizeJoint(const std::string& jointName);
+
+	// Reconstruction
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructedTags;
 
     // Pan Tilt data
     PtuImageCapture ptuData;
 
     // Pan Tilt Image Detections
-    visual_marker_mapping::DetectionResult ptuDetectionResult;
+    std::map<int, visual_marker_mapping::DetectionResult> ptuDetectionResults;
 
-    bool computeRelativeCameraPoseFromImg(int imageId, const Eigen::Matrix3d& K,
-        const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
-        Eigen::Vector3d& t) const;
+    bool computeRelativeCameraPoseFromImg(int cameraId, int imageId,
+                                          const Eigen::Matrix3d& K,
+                                          const Eigen::Matrix<double, 5, 1>& distCoefficients,
+                                          Eigen::Quaterniond& q,
+                                          Eigen::Vector3d& t);
+
+    void exportCalibrationResults(const std::string& filePath);
 
 
     /////////
@@ -31,10 +44,20 @@ struct PtuCalibrationProject
 
     struct DebugVis
     {
-        visual_marker_mapping::Camera cam;
+    	visual_marker_mapping::Camera cam;
+        int type = 0;
     };
 
     std::vector<DebugVis> debugVis;
+
+
+    struct JointData
+    {
+      Eigen::Matrix<double,7,1> joint_to_parent_pose;
+      //std::vector<double> joint_positions;
+      double ticks_to_rad;
+    };
+    std::vector<JointData> jointData;
 };
 
-#endif
+#endif 

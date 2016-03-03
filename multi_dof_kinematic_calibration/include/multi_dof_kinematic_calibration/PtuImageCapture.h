@@ -1,3 +1,10 @@
+/*
+ *  PtuImageCapture.h
+ *
+ *  Created on: 21.01.16
+ *      Author: Stephan Manthe
+ */
+
 #ifndef PTUIMAGECAPTURE_H_
 #define PTUIMAGECAPTURE_H_
 
@@ -8,44 +15,59 @@
 #include <opencv2/opencv.hpp>
 
 
-struct PanTiltImageInfo
+//struct PanTiltImageInfo
+//{
+//    int cameraId = -1;
+//    std::string imagePath;
+//    double panAngle = 0.;
+//    double tiltAngle = 0.;
+//    int panTicks = 0;
+//    int tiltTicks = 0;
+//};
+
+struct JointImageInfo
 {
+    int locationId;
     int cameraId = -1;
-    std::string imagePath;
-    double panAngle = 0.;
-    double tiltAngle = 0.;
-    int panTicks = 0;
-    int tiltTicks = 0;
+    std::string imagePath = "";
+    std::vector<int> jointConfiguration; // jointName --> {ticks}
 };
 
 
 struct PtuImageCapture
 {
-    void startCapture(
-        const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
-        const std::string& rootdirPath, bool preferTilt);
-
+    void startCapture(const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
+                      const std::string& rootdirPath,
+                      bool preferTilt);
+    
     void exportPanTiltImages(const std::string& filePath);
 
     void importPanTiltImages(const std::string& filePath);
 
+
+  // TODO SM remove then cleanup ptuimage capture     
     double panStartAngle;
     double panEndAngle;
-
+    
     double tiltStartAngle;
     double tiltEndAngle;
-
+    
     int numStepsPan;
     int numStepsTilt;
-
+    
     // contains for every camera the corresponding camera model
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
 
-    std::vector<PanTiltImageInfo> ptuImagePoses;
+    std::vector<JointImageInfo> ptuImagePoses;
+
+    std::vector<std::string> jointNames;
 
 protected:
     void executeCapture(const std::string& rootDirPath,
-        const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
-        double panAngle, double tiltAngle, int counter);
+                        const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
+                        double panAngle,
+                        double tiltAngle,
+                        int counter);       
+
 };
-#endif
+#endif 
