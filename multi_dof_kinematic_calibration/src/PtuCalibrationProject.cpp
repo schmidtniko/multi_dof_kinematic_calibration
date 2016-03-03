@@ -965,7 +965,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     // Read Pan Tilt Data
     {
         std::string filePath = folder + "/calibration_frames.json";
-        ptuData.importPanTiltImages(folder + "/calibration_frames.json");
+        ptuData=PtuImageCapture(folder + "/calibration_frames.json");
         std::cout << "Read PTU Data!" << std::endl;
     }
 

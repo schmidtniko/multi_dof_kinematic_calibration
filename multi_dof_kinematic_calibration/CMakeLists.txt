@@ -6,7 +6,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_executable(${PROJECT_NAME}
-               src/PtuImageCapture.cpp
+#               src/PtuImageCapture.cpp
+               src/CalibrationFrameIO.cpp
                src/PtuCalibrationProject.cpp
                src/main.cpp)
 

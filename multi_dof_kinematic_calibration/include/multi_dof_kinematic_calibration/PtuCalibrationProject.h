@@ -4,7 +4,7 @@
 #include "visual_marker_mapping/Camera.h"
 #include "visual_marker_mapping/TagReconstructor.h"
 #include "visual_marker_mapping/TagDetector.h"
-#include "PtuImageCapture.h"
+#include "CalibrationFrameIO.h"
 
 namespace multi_dof_kinematic_calibration
 {

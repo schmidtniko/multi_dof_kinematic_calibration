@@ -1,5 +1,5 @@
-#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_PTUIMAGECAPTURE_H
-#define MULTI_DOF_KINEMATIC_CALIBRATION_PTUIMAGECAPTURE_H
+#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_CALIBRATIONFRAMEIO_h
+#define MULTI_DOF_KINEMATIC_CALIBRATION_CALIBRATIONFRAMEIO_h
 
 #include "visual_marker_mapping/CameraModel.h"
 
@@ -31,6 +31,7 @@ struct JointImageInfo
 
 struct PtuImageCapture
 {
+    PtuImageCapture() {}
     PtuImageCapture(const std::string& filePath);
 
     // contains for every camera the corresponding camera model
