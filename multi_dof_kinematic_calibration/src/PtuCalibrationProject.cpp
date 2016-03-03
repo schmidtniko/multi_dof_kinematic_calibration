@@ -4,7 +4,7 @@
 
 #include "visual_marker_mapping/ReconstructionIO.h"
 #include "visual_marker_mapping/DetectionIO.h"
-#include "visual_marker_mapping/eigenCVConversions.h"
+#include "visual_marker_mapping/EigenCVConversions.h"
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
@@ -488,9 +488,9 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 {
     // Read Reconstructions
     {
-        camSurv::CameraModel camModel;
-        std::map<int, camSurv::Camera> reconstructedCameras;
-        camSurv::parseReconstructions(
+        visual_marker_mapping::CameraModel camModel;
+        std::map<int, visual_marker_mapping::Camera> reconstructedCameras;
+        visual_marker_mapping::parseReconstructions(
             folder + "/reconstruction.json", reconstructedTags, reconstructedCameras, camModel);
         std::cout << "Read reconstructions!" << std::endl;
     }
@@ -503,7 +503,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     }
 
     {
-        ptuDetectionResult = camSurv::readDetectionResult(folder + "/cam1/detectedMarkers.json");
+        ptuDetectionResult = visual_marker_mapping::readDetectionResult(folder + "/cam1/detectedMarkers.json");
         std::cout << "Read PTU Image Detections!" << std::endl;
     }
 
@@ -521,14 +521,15 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
         distinctTiltTicks.emplace(ptuData.ptuImagePoses[i].tiltTicks, distinctTiltTicks.size());
 
-        const camSurv::CameraModel& camModel
+        const visual_marker_mapping::CameraModel& camModel
             = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
 
         size_t detectedImageId = -1;
         for (size_t j = 0; j < ptuDetectionResult.images.size(); j++)
         {
+            // TODO check if works
             if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                    ptuDetectionResult.images[j].filename.c_str()))
+                    ptuDetectionResult.images[j].filePath.c_str()))
             {
                 detectedImageId = j;
                 break;
@@ -716,15 +717,16 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
             size_t detectedImageId = -1;
             for (size_t j = 0; j < ptuDetectionResult.images.size(); j++)
             {
+                // TODO check if works
                 if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                        ptuDetectionResult.images[j].filename.c_str()))
+                        ptuDetectionResult.images[j].filePath.c_str()))
                 {
                     detectedImageId = j;
                     break;
                 }
             }
 
-            const camSurv::CameraModel& camModel
+            const visual_marker_mapping::CameraModel& camModel
                 = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
 
             for (const auto& tagObs : ptuDetectionResult.tagObservations)
@@ -872,15 +874,16 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
             size_t detectedImageId = -1;
             for (size_t j = 0; j < ptuDetectionResult.images.size(); j++)
             {
+                // TODO check if works
                 if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                        ptuDetectionResult.images[j].filename.c_str()))
+                        ptuDetectionResult.images[j].filePath.c_str()))
                 {
                     detectedImageId = j;
                     break;
                 }
             }
 
-            const camSurv::CameraModel& camModel
+            const visual_marker_mapping::CameraModel& camModel
                 = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
 
             for (const auto& tagObs : ptuDetectionResult.tagObservations)
@@ -963,7 +966,7 @@ bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int imageId, const 
 
     Eigen::Matrix3d R;
     // solvePnPEigen(markerCorners3D, observations2D, K, distCoefficients, R, t);
-    camSurv::solvePnPRansacEigen(markerCorners3D, observations2D, K, distCoefficients, R, t);
+    visual_marker_mapping::solvePnPRansacEigen(markerCorners3D, observations2D, K, distCoefficients, R, t);
 
     q = Eigen::Quaterniond(R);
     return true;

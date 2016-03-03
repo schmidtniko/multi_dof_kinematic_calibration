@@ -39,7 +39,7 @@ struct PtuImageCapture
     int numStepsTilt;
 
     // contains for every camera the corresponding camera model
-    std::map<int, camSurv::CameraModel> cameraModelById;
+    std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
 
     std::vector<PanTiltImageInfo> ptuImagePoses;
 

@@ -5,7 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <Eigen/Core>
 
-#include "visual_marker_mapping/cameraUtilities.h"
+#include "visual_marker_mapping/CameraUtilities.h"
 
 void PtuImageCapture::startCapture(
     const std::function<std::map<int, cv::Mat>(double, double, int&, int&)>& captureFunction,
@@ -128,7 +128,7 @@ void PtuImageCapture::importPanTiltImages(const std::string& filePath)
     {
         pt::ptree cameraModelPt = cameraModelPair.second;
         int cameraId = cameraModelPt.get<int>("model_id");
-        camSurv::CameraModel camModel = camSurv::propertyTreeToCameraModel(cameraModelPt);
+        visual_marker_mapping::CameraModel camModel = visual_marker_mapping::propertyTreeToCameraModel(cameraModelPt);
         cameraModelById[cameraId] = camModel;
     }
 
@@ -165,9 +165,9 @@ void PtuImageCapture::exportPanTiltImages(const std::string& filePath)
     for (auto camModelPair : cameraModelById)
     {
         const int modelId = camModelPair.first;
-        const camSurv::CameraModel& camModel = camModelPair.second;
+        const visual_marker_mapping::CameraModel& camModel = camModelPair.second;
 
-        pt::ptree cameraModelPt = camSurv::cameraModelToPropertyTree(camModel);
+        pt::ptree cameraModelPt = visual_marker_mapping::cameraModelToPropertyTree(camModel);
         cameraModelPt.put("model_id", modelId);
         cameraModelsPt.push_back(std::make_pair("", cameraModelPt));
     }
