@@ -1,10 +1,3 @@
-/*
- *  PtuImageCapture.cpp
- *
- *  Created on: 21.01.16
- *      Author: Stephan Manthe
- */
-
 #include "multi_dof_kinematic_calibration/PtuImageCapture.h"
 
 #include <boost/filesystem.hpp>

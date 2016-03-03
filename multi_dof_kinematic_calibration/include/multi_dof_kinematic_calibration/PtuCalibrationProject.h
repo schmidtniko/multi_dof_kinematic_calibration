@@ -1,10 +1,3 @@
-/*
- *  PtuCalibrationProject.h
- *
- *  Created on: 30.01.16
- *      Author: Stephan Manthe
- */
-
 #ifndef PTUCALIBRATIONPROJECT_H_
 
 #include "visual_marker_mapping/Camera.h"

@@ -6,7 +6,6 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 
-
 //------------------------------------------------------------------------------------------------------------
 namespace po = boost::program_options;
 po::variables_map loadParameters(int argc, char* argv[])

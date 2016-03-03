@@ -1,10 +1,3 @@
-/*
- *  PtuImageCapture.h
- *
- *  Created on: 21.01.16
- *      Author: Stephan Manthe
- */
-
 #ifndef PTUIMAGECAPTURE_H_
 #define PTUIMAGECAPTURE_H_
 
