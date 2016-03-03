@@ -14,11 +14,11 @@
 
 struct PtuCalibrationProject
 {
-	void processFolder(const std::string& folder);
+    void processFolder(const std::string& folder);
 
     void optimizeJoint(const std::string& jointName);
 
-	// Reconstruction
+    // Reconstruction
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructedTags;
 
     // Pan Tilt data
@@ -27,11 +27,9 @@ struct PtuCalibrationProject
     // Pan Tilt Image Detections
     std::map<int, visual_marker_mapping::DetectionResult> ptuDetectionResults;
 
-    bool computeRelativeCameraPoseFromImg(int cameraId, int imageId,
-                                          const Eigen::Matrix3d& K,
-                                          const Eigen::Matrix<double, 5, 1>& distCoefficients,
-                                          Eigen::Quaterniond& q,
-                                          Eigen::Vector3d& t);
+    bool computeRelativeCameraPoseFromImg(int cameraId, int imageId, const Eigen::Matrix3d& K,
+        const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
+        Eigen::Vector3d& t);
 
     void exportCalibrationResults(const std::string& filePath);
 
@@ -44,7 +42,7 @@ struct PtuCalibrationProject
 
     struct DebugVis
     {
-    	visual_marker_mapping::Camera cam;
+        visual_marker_mapping::Camera cam;
         int type = 0;
     };
 
@@ -53,11 +51,11 @@ struct PtuCalibrationProject
 
     struct JointData
     {
-      Eigen::Matrix<double,7,1> joint_to_parent_pose;
-      //std::vector<double> joint_positions;
-      double ticks_to_rad;
+        Eigen::Matrix<double, 7, 1> joint_to_parent_pose;
+        // std::vector<double> joint_positions;
+        double ticks_to_rad;
     };
     std::vector<JointData> jointData;
 };
 
-#endif 
+#endif

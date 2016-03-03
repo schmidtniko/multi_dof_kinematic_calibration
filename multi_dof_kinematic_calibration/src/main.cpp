@@ -40,7 +40,6 @@ int main(int argc, char* argv[])
 
         PtuCalibrationProject proj;
         proj.processFolder(project_path.string());
-
     }
     catch (const std::exception& ex)
     {
