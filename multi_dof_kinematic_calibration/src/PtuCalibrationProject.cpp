@@ -22,258 +22,6 @@
 
 namespace multi_dof_kinematic_calibration
 {
-#if 0
-struct PTUPoseError {
- 	PTUPoseError(const Eigen::Matrix<double,7,1>& camPose_origin) : camPose_origin(camPose_origin) {}
-
-    template <typename T>
-    bool operator()(const T* const panpose_xyz,
-                    const T* const panpose_q,
-                    const T* const alpha,
-                    const T* const campose_xyz,
-                    const T* const campose_q,
-                    T* residuals) const {
-
-        Eigen::Matrix<T,4,1> alpha_q;
-        alpha_q << cos((*alpha)/T(2)), T(0), T(0), sin((*alpha)/T(2));
-        Eigen::Matrix<T,3,1> alpha_xyz;
-        alpha_xyz << T(0), T(0), T(0);
-
-        Eigen::Matrix<T,4,1> tmp_q;
-        Eigen::Matrix<T,3,1> tmp_xyz;
-        poseAccum<T>(alpha_q, alpha_xyz, eMap4(campose_q), eMap3(campose_xyz), tmp_q, tmp_xyz);
-        Eigen::Matrix<T,4,1> tmp2_q;
-        Eigen::Matrix<T,3,1> tmp2_xyz;
-        poseAccum<T>(eMap4(panpose_q), eMap3(panpose_xyz), tmp_q, tmp_xyz, tmp2_q, tmp2_xyz);
-
-        eMap3(&residuals[0]) = tmp2_xyz - camPose_origin.segment<3>(0).cast<T>();
-
-        Eigen::Matrix<T,4,1> camPose_origin_q_conj = camPose_origin.segment<4>(3).cast<T>();
-        camPose_origin_q_conj.template segment<3>(1)*=T(-1);
-
-        Eigen::Matrix<T,4,1> delta_q;
-        ceres::QuaternionProduct(&tmp2_q(0), &camPose_origin_q_conj(0), &delta_q(0));
-
-         ceres::QuaternionToAngleAxis(&delta_q(0), &residuals[3]);
-         for (int i=0;i<3;i++)
-         	residuals[3+i]*=T(1000);
-
-        return true;
-    }
-
-    // Factory to hide the construction of the CostFunction object from
-    // the client code.
-    static ceres::CostFunction* Create(const Eigen::Matrix<double,7,1>& camPose_origin)
-    {
-        return (new ceres::AutoDiffCostFunction<PTUPoseError, 6, 3, 4, 1, 3, 4>(
-                  new PTUPoseError(camPose_origin)));
-    }
-
-    Eigen::Matrix<double,7,1> camPose_origin;
-};
-
-struct PTUPoseErrorTilt {
- 	PTUPoseErrorTilt(const Eigen::Matrix<double,7,1>& camPose_origin) : camPose_origin(camPose_origin) {}
-
-    template <typename T>
-    bool operator()(const T* const panposeinv_xyz,
-                    const T* const panposeinv_q,
-                    const T* const alpha,
-                    const T* const tiltposeinv_xyz,
-                    const T* const tiltposeinv_q,
-                    const T* const beta,
-                    const T* const campose_xyz,
-                    const T* const campose_q,
-                    T* residuals) const {
-
-#if 1
-        Eigen::Matrix<T,3,1> pz = eMap3(panposeinv_xyz);
-        if (pz(0)<T(0)) pz(0)*=T(-1);
-        auto panPose=cposeInv(cmakePose<T>(pz, eMap4(panposeinv_q)));
-        Eigen::Matrix<T,3,1> tz = eMap3(tiltposeinv_xyz);
-        if (tz(0)<T(0)) tz(0)*=T(-1);
-        auto tiltPose=cposeInv(cmakePose<T>(tz, eMap4(tiltposeinv_q)));
-        auto camPose=cmakePose<T>(eMap3(campose_xyz), eMap4(campose_q));
-
-        Eigen::Matrix<T, 7, 1> betaPose;
-        betaPose << T(0),T(0),T(0),cos((*beta)/T(2)), T(0), T(0), sin((*beta)/T(2));
-        //betaPose << T(0), T(0), T(0), T(1), T(0), T(0), T(0);
-        Eigen::Matrix<T, 7, 1> alphaPose;
-        alphaPose << T(0),T(0),T(0),cos((*alpha)/T(2)), T(0), T(0), sin((*alpha)/T(2));
-        //alphaPose << T(0), T(0), T(0), T(1), T(0), T(0), T(0);
-
-        auto camWorldPose=cposeAdd(panPose, cposeAdd(alphaPose, cposeAdd(tiltPose, cposeAdd(betaPose, camPose))));
-
-        // auto deltaPose = cposeAdd(camWorldPose,cposeInv<T>(camPose_origin.cast<T>()));
-        // Eigen::Matrix<T, 7, 1> zeroPose;
-        // zeroPose << T(0),T(0),T(0),T(1),T(0),T(0),T(0);
-        // eMap6(&residuals[0])=cposeManifoldMinus<T>(deltaPose, zeroPose);
-
-        eMap6(&residuals[0])=cposeManifoldMinus<T>(camWorldPose, camPose_origin.cast<T>());
-
-        //for (int i=0;i<3;i++)
-            //residuals[3+i]*=T(1000);
-#else
-        Eigen::Matrix<T,4,1> cam2Tilt_q;
-        Eigen::Matrix<T,3,1> cam2Tilt_xyz;
-
-        //Tilt
-        Eigen::Matrix<T, 4, 1> beta_q;
-        beta_q << cos((*beta)/T(2)), T(0), T(0), sin((*beta)/T(2));
-        Eigen::Matrix<T,3,1> beta_xyz;
-        beta_xyz << T(0), T(0), T(0);
-
-        poseAccum<T>(beta_q, beta_xyz, eMap4(campose_q), eMap3(campose_xyz), cam2Tilt_q, cam2Tilt_xyz);
-
-        
-        Eigen::Matrix<T,4,1> cam2TiltRoot_q;
-        Eigen::Matrix<T,3,1> cam2TiltRoot_xyz;
-        poseAccum<T>(eMap4(tiltpose_q), eMap3(tiltpose_xyz), cam2Tilt_q, cam2Tilt_xyz, cam2TiltRoot_q, cam2TiltRoot_xyz);
-
-
-        // Pan
-        Eigen::Matrix<T,4,1> tmp_q;
-        Eigen::Matrix<T,3,1> tmp_xyz;
-        
-        Eigen::Matrix<T,4,1> alpha_q;
-        alpha_q << cos((*alpha)/T(2)), T(0), T(0), sin((*alpha)/T(2));
-        Eigen::Matrix<T,3,1> alpha_xyz;
-        alpha_xyz << T(0), T(0), T(0);
-
-        poseAccum<T>(alpha_q, alpha_xyz, cam2TiltRoot_q, cam2TiltRoot_xyz, tmp_q, tmp_xyz);
-        Eigen::Matrix<T,4,1> tmp2_q;
-        Eigen::Matrix<T,3,1> tmp2_xyz;
-        poseAccum<T>(eMap4(panpose_q), eMap3(panpose_xyz), tmp_q, tmp_xyz, tmp2_q, tmp2_xyz);
-
-        eMap3(&residuals[0]) = tmp2_xyz - camPose_origin.segment<3>(0).cast<T>();
-
-        Eigen::Matrix<T,4,1> camPose_origin_q_conj = camPose_origin.segment<4>(3).cast<T>();
-        camPose_origin_q_conj.template segment<3>(1)*=T(-1);
-
-        Eigen::Matrix<T,4,1> delta_q;
-        ceres::QuaternionProduct(&tmp2_q(0), &camPose_origin_q_conj(0), &delta_q(0));
-
-        ceres::QuaternionToAngleAxis(&delta_q(0), &residuals[3]);
-        for (int i=0;i<3;i++)
-            residuals[3+i]*=T(1000);
-#endif
-
-        return true;
-    }
-
-    // Factory to hide the construction of the CostFunction object from
-    // the client code.
-    static ceres::CostFunction* Create(const Eigen::Matrix<double,7,1>& camPose_origin)
-    {
-        return (new ceres::AutoDiffCostFunction<PTUPoseErrorTilt, 6, 3, 4, 1, 3, 4, 1, 3, 4>(
-                  new PTUPoseErrorTilt(camPose_origin)));
-    }
-
-    Eigen::Matrix<double,7,1> camPose_origin;
-};
-
-
-struct PTUPoseErrorTiltRepError {
-    PTUPoseErrorTiltRepError(const Eigen::Vector2d& observation,
-            const Eigen::Vector3d& point_3d,
-            const Eigen::Matrix<double, 5, 1>& d,
-            const Eigen::Matrix3d& K) : repError(observation,d,K), point_3d(point_3d) {}
-
-    template <typename T>
-    bool operator()(const T* const panposeinv_xyz,
-                    const T* const panposeinv_q,
-                    const T* const alpha,
-                    const T* const tiltposeinv_xyz,
-                    const T* const tiltposeinv_q,
-                    const T* const beta,
-                    const T* const campose_xyz,
-                    const T* const campose_q,
-                    T* residuals) const {
-#if 0
-        Eigen::Matrix<T,4,1> cam2Tilt_q;
-        Eigen::Matrix<T,3,1> cam2Tilt_xyz;
-
-        //Tilt
-        Eigen::Matrix<T, 4, 1> beta_q;
-        beta_q << cos((*beta)/T(2)), T(0), T(0), sin((*beta)/T(2));
-        Eigen::Matrix<T,3,1> beta_xyz;
-        beta_xyz << T(0), T(0), T(0);
-
-        poseAccum<T>(beta_q, beta_xyz, eMap4(campose_q), eMap3(campose_xyz), cam2Tilt_q, cam2Tilt_xyz);
-
-        
-        Eigen::Matrix<T,4,1> cam2TiltRoot_q;
-        Eigen::Matrix<T,3,1> cam2TiltRoot_xyz;
-        poseAccum<T>(eMap4(tiltpose_q), eMap3(tiltpose_xyz), cam2Tilt_q, cam2Tilt_xyz, cam2TiltRoot_q, cam2TiltRoot_xyz);
-
-
-        // Pan
-        Eigen::Matrix<T,4,1> tmp_q;
-        Eigen::Matrix<T,3,1> tmp_xyz;
-        
-        Eigen::Matrix<T,4,1> alpha_q;
-        alpha_q << cos((*alpha)/T(2)), T(0), T(0), sin((*alpha)/T(2));
-        Eigen::Matrix<T,3,1> alpha_xyz;
-        alpha_xyz << T(0), T(0), T(0);
-
-        poseAccum<T>(alpha_q, alpha_xyz, cam2TiltRoot_q, cam2TiltRoot_xyz, tmp_q, tmp_xyz);
-        Eigen::Matrix<T,4,1> tmp2_q;
-        Eigen::Matrix<T,3,1> tmp2_xyz;
-        poseAccum<T>(eMap4(panpose_q), eMap3(panpose_xyz), tmp_q, tmp_xyz, tmp2_q, tmp2_xyz);
-
-        // tmp2 invertieren
-        Eigen::Matrix<T,4,1> tmp2_q_inv = tmp2_q;
-        tmp2_q_inv.template segment<3>(1)*=T(-1.0);
-
-        Eigen::Matrix<T,3,1> tmp2_xyz_inv;
-        ceres::QuaternionRotatePoint(&tmp2_q_inv(0), &tmp2_xyz(0), &tmp2_xyz_inv(0));
-        tmp2_xyz_inv=-tmp2_xyz_inv;
-
-        Eigen::Matrix<T,3,1> point_3d_T = point_3d.cast<T>();
-
-        return repError(&tmp2_xyz_inv(0), &tmp2_q_inv(0), &point_3d_T(0), residuals);
-
-#else
-        Eigen::Matrix<T,3,1> pz = eMap3(panposeinv_xyz);
-        if (pz(0)<T(0)) pz(0)*=T(-1);
-        auto panPose=cposeInv(cmakePose<T>(pz, eMap4(panposeinv_q)));
-        Eigen::Matrix<T,3,1> tz = eMap3(tiltposeinv_xyz);
-        if (tz(0)<T(0)) tz(0)*=T(-1);
-        auto tiltPose=cposeInv(cmakePose<T>(tz, eMap4(tiltposeinv_q)));
-        auto camPose=cmakePose<T>(eMap3(campose_xyz), eMap4(campose_q));
-
-        Eigen::Matrix<T, 7, 1> betaPose;
-        betaPose << T(0),T(0),T(0),cos((*beta)/T(2)), T(0), T(0), sin((*beta)/T(2));
-        //betaPose << T(0), T(0), T(0), T(1), T(0), T(0), T(0);
-        Eigen::Matrix<T, 7, 1> alphaPose;
-        alphaPose << T(0),T(0),T(0),cos((*alpha)/T(2)), T(0), T(0), sin((*alpha)/T(2));
-        //alphaPose << T(0), T(0), T(0), T(1), T(0), T(0), T(0);
-
-        auto camToWorld=cposeAdd(panPose, cposeAdd(alphaPose, cposeAdd(tiltPose, cposeAdd(betaPose, camPose))));
-
-        auto worldToCam=cposeInv(camToWorld);
-
-        Eigen::Matrix<T,3,1> point_3d_T = point_3d.cast<T>();
-        return repError(&worldToCam(0), &worldToCam(3), &point_3d_T(0), residuals);
-
-#endif
-    }
-
-    // Factory to hide the construction of the CostFunction object from
-    // the client code.
-    static ceres::CostFunction* Create(const Eigen::Vector2d& observation,
-            const Eigen::Vector3d& point_3d,
-            const Eigen::Matrix<double, 5, 1>& d,
-            const Eigen::Matrix3d& K)
-    {
-        return (new ceres::AutoDiffCostFunction<PTUPoseErrorTiltRepError, 2, 3, 4, 1, 3, 4, 1, 3, 4>(
-                  new PTUPoseErrorTiltRepError(observation, point_3d, d, K)));
-    }
-
-    OpenCVReprojectionError repError;
-    Eigen::Vector3d point_3d;
-};
-#endif
 struct DynPTUPoseErrorTiltRepError
 {
     DynPTUPoseErrorTiltRepError(const Eigen::Vector2d& observation, const Eigen::Vector3d& point_3d,
@@ -391,15 +139,9 @@ struct DynPTUPoseErrorTilt
 
 
 //-----------------------------------------------------------------------------
-void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
+void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 {
     const int onlyCamId = 1;
-
-    int jointIndex = -1;
-    for (int i = 0; i < (int)ptuData.jointNames.size(); i++)
-    {
-        if (ptuData.jointNames[i] == jointName) jointIndex = i;
-    }
 
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -424,7 +166,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     auto quaternion_parameterization = new ceres::QuaternionParameterization;
     auto quaternion_parameterization2 = new ceres::QuaternionParameterization;
 
-    for (int j = 0; j < jointIndex + 1; j++)
+    for (size_t j = 0; j < jointIndex + 1; j++)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
@@ -470,24 +212,24 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     }
 
 
-    using DistinctJointIndex = std::vector<int>;
-    using DistinctLeverIndex = int;
+    using DistinctJointIndex = std::vector<size_t>;
+    using DistinctLeverIndex = size_t;
     std::vector<DistinctJointIndex> indexToDistinctJoint(ptuData.ptuImagePoses.size());
     std::vector<DistinctLeverIndex> indexToDistinctLever(ptuData.ptuImagePoses.size());
 
     using JointState = int;
     using LeverState = std::vector<int>;
-    std::vector<std::map<JointState, int> > distinctJointPositions(ptuData.jointNames.size());
+    std::vector<std::map<JointState, size_t> > distinctJointPositions(ptuData.jointNames.size());
     std::map<LeverState, DistinctLeverIndex> distinctLeverPositions;
 
-    std::map<int, int> distinctFrequencies;
+    std::map<size_t, size_t> distinctFrequencies;
 
 
     std::map<DistinctLeverIndex, Eigen::Matrix<double, 7, 1> > camPoses;
 
-    std::vector<std::map<int, double> > joint_positions(ptuData.jointNames.size());
+    std::vector<std::map<size_t, double> > joint_positions(ptuData.jointNames.size());
 
-    int numc = 0;
+    size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
         if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
@@ -495,14 +237,14 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
         const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
 
-        for (int j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
+        for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
         {
             if (0)
             { // one angle variable for each distinct(!) ptu pose
                 auto it = distinctJointPositions[j].find(jointConfig[j]);
                 if (it == distinctJointPositions[j].end())
                 {
-                    const int dj = distinctJointPositions[j].size();
+                    const size_t dj = distinctJointPositions[j].size();
                     indexToDistinctJoint[i].push_back(dj);
                     distinctJointPositions[j].emplace(jointConfig[j], dj);
 
@@ -552,7 +294,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
             auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
             {
-                const int dl = distinctLeverPositions.size();
+                const size_t dl = distinctLeverPositions.size();
                 indexToDistinctLever[i] = dl;
                 distinctLeverPositions.emplace(leverConfig, dl);
 
@@ -605,21 +347,21 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
         Eigen::Matrix<double, 7, 1> world_to_cam;
         world_to_cam.segment<3>(0) = reconstructedPoses[i].t;
         world_to_cam.segment<4>(3) = reconstructedPoses[i].q;
-        //Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
+        // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
         constexpr bool robustify = false;
         auto* currentCostFunc = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
         std::vector<double*> parameter_blocks;
-        for (int j = 0; j < jointIndex + 1; j++)
+        for (size_t j = 0; j < jointIndex + 1; j++)
         {
-            const int dj = indexToDistinctJoint[i][j];
+            const size_t dj = indexToDistinctJoint[i][j];
             parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
             parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
             parameter_blocks.push_back(&joint_positions[j][dj]);
             parameter_blocks.push_back(&jointData[j].ticks_to_rad);
         }
-        const int dl = indexToDistinctLever[i];
+        const size_t dl = indexToDistinctLever[i];
         parameter_blocks.push_back(&camPoses[dl](0));
         parameter_blocks.push_back(&camPoses[dl](3));
         markerBAProblem.AddResidualBlock(currentCostFunc,
@@ -652,7 +394,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
             if (tagIt == reconstructedTags.end()) continue;
 
             const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
-            for (int c = 0; c < 4; c++)
+            for (size_t c = 0; c < 4; c++)
             {
                 // check origin pose
                 // {
@@ -724,7 +466,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
 
     {
         double rms = 0;
-        for (int i = 0; i < (int)repErrorFns.size(); i++)
+        for (size_t i = 0; i < repErrorFns.size(); i++)
         {
             double sqrError = repErrorFns[i]();
             // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
@@ -740,7 +482,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     // if (printSummary)
     std::cout << summary2.FullReport() << std::endl;
 
-    for (int j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
+    for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
     {
         std::cout << "SCALE " << j << " : " << jointData[j].ticks_to_rad << std::endl;
     }
@@ -775,12 +517,12 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     // std::cout << std::endl;
 
     std::cout << "CamPoses: " << std::endl;
-    for (int i = 0; i < (int)camPoses.size(); i++)
+    for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
     {
         double rms = 0;
-        for (int i = 0; i < (int)repErrorFns.size(); i++)
+        for (size_t i = 0; i < repErrorFns.size(); i++)
         {
             double sqrError = repErrorFns[i]();
             // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
@@ -796,7 +538,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     jsonStream << "\"camera_poses\":  [" << std::endl;
 #endif
 
-    if (jointIndex + 1 == (int)ptuData.jointNames.size())
+    if (jointIndex + 1 == ptuData.jointNames.size())
     {
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
@@ -807,7 +549,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
             Eigen::Matrix<double, 7, 1> root;
             root << 0, 0, 0, 1, 0, 0, 0;
 
-            for (int j = 0; j < jointIndex + 1; j++)
+            for (size_t j = 0; j < jointIndex + 1; j++)
             {
                 root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
                 // std::cout << poseInverse(jointData[j].joint_to_parent_pose).transpose() << " !! "
@@ -831,7 +573,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
             jsonStream << "{" << std::endl;
 #endif
             // std::cout << "NumCamPoses" << camPoses.size() << std::endl;
-            for (int c = 0; c < (int)camPoses.size(); c++)
+            for (size_t c = 0; c < camPoses.size(); c++)
             {
                 auto ret = poseAdd(root, poseInverse(camPoses[c]));
                 // std::cout << ret.transpose() << std::endl;
@@ -867,7 +609,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
         jsonStream << "\"axes\": [" << std::endl;
 #endif
 
-        for (int j = 0; j < jointIndex + 1; j++)
+        for (size_t j = 0; j < jointIndex + 1; j++)
         {
             root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
 
@@ -917,7 +659,8 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
 
                 const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
-                for (int j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
+                for (size_t j = 0; j < jointIndex + 1;
+                     j++) // this loop could be swapped with the prev
                 {
 
                     joint_positions[j][numc] = jointConfig[j]; //*0.00089779559;
@@ -926,7 +669,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
             }
             {
                 double rms = 0;
-                for (int i = 0; i < (int)repErrorFns.size(); i++)
+                for (size_t i = 0; i < repErrorFns.size(); i++)
                 {
                     double sqrError = repErrorFns[i]();
                     // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
@@ -943,30 +686,30 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
 {
     namespace pt = boost::property_tree;
     pt::ptree root;
-   
-    pt::ptree kinematicChainPt; 
+
+    pt::ptree kinematicChainPt;
     size_t counter = 1;
-    for (const auto &joint : jointData)
+    for (const auto& joint : jointData)
     {
         const Eigen::Vector3d translation = joint.joint_to_parent_pose.head(3);
         const Eigen::Vector4d rotation = joint.joint_to_parent_pose.segment<4>(3);
-        pt::ptree translationPt = visual_marker_mapping::matrix2PropertyTreeEigen(translation); 
-        pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation); 
-        
+        pt::ptree translationPt = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
+        pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
+
         pt::ptree jointDataPt;
         jointDataPt.add_child("translation", translationPt);
         jointDataPt.add_child("rotation", rotationPt);
         jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
 
-        if(counter == jointData.size())
-            jointDataPt.put("name", "camera"); 
+        if (counter == jointData.size())
+            jointDataPt.put("name", "camera");
         else
             jointDataPt.put("name", "joint_" + std::to_string(counter));
 
-        kinematicChainPt.push_back(std::make_pair("",jointDataPt));
+        kinematicChainPt.push_back(std::make_pair("", jointDataPt));
         counter++;
     }
-    
+
     root.add_child("kinematic_chain", kinematicChainPt);
     boost::property_tree::write_json(filePath, root);
 }
@@ -985,7 +728,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     // Read Pan Tilt Data
     {
         std::string filePath = folder + "/calibration_frames.json";
-        ptuData=PtuImageCapture(folder + "/calibration_frames.json");
+        ptuData = PtuImageCapture(folder + "/calibration_frames.json");
         std::cout << "Read PTU Data!" << std::endl;
     }
 
@@ -1038,15 +781,15 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     }
 
     jointData.resize(ptuData.jointNames.size());
-    for (int j = 0; j < (int)jointData.size(); j++)
+    for (size_t j = 0; j < jointData.size(); j++)
     {
         jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
         jointData[j].ticks_to_rad = 0.051429 / 180.0 * M_PI;
     }
-    for (const std::string& jointName : ptuData.jointNames)
+    for (size_t j = 0; j < ptuData.jointNames.size(); j++)
     {
-        std::cout << "Optimizing joint: " << jointName << std::endl;
-        optimizeJoint(jointName);
+        std::cout << "Optimizing joint: " << ptuData.jointNames[j] << std::endl;
+        optimizeJoint(j);
         // continue;
         // return;
     }
