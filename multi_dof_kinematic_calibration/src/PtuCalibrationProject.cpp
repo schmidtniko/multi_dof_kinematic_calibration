@@ -403,9 +403,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     auto computeRMSE = [&repErrorFns]()
     {
         double rms = 0;
-        for (size_t i = 0; i < repErrorFns.size(); i++)
+		for (const auto& errFn : repErrorFns)
         {
-            const double sqrError = repErrorFns[i]();
+            const double sqrError = errFn();
             // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
             rms += sqrError;
         }
