@@ -987,7 +987,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         // std::cout << camModel.getK() << std::endl;
         // std::cout << camModel.distortionCoefficients.transpose() << std::endl;
 
-        size_t detectedImageId = -1;
+        int detectedImageId = -1;
         for (size_t j = 0; j < ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size();
              j++)
         {
@@ -996,7 +996,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
                         .images[j]
                         .filename.c_str()))
             {
-                detectedImageId = j;
+                detectedImageId = static_cast<int>(j);
                 break;
             }
         }
@@ -1050,12 +1050,12 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
  		const camSurv::CameraModel& camModel = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
 
-        size_t detectedImageId=-1;
+        int detectedImageId=-1;
         for (size_t j=0;j<ptuDetectionResult.images.size();j++)
         {
         	if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
         	{
-        		detectedImageId=j;
+        		detectedImageId=static_cast<int>(j);
         		break;
         	}
         }
@@ -1232,12 +1232,12 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
                                              &tiltPoseInv(0), &tiltPoseInv(3), &betas[curImage],
                                              &camPose(0), &camPose(3));
 
-            size_t detectedImageId=-1;
+            int detectedImageId=-1;
             for (size_t j=0;j<ptuDetectionResult.images.size();j++)
             {
                 if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
                 {
-                    detectedImageId=j;
+                    detectedImageId=static_cast<int>(j);
                     break;
                 }
             }
@@ -1381,12 +1381,12 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
             // haesslich!
 
-            size_t detectedImageId=-1;
+            int detectedImageId=-1;
             for (size_t j=0;j<ptuDetectionResult.images.size();j++)
             {
                 if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
                 {
-                    detectedImageId=j;
+                    detectedImageId=static_cast<int>(j);
                     break;
                 }
             }
