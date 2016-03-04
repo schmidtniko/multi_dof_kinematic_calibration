@@ -159,7 +159,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     ceres::Problem markerBAProblem;
     ceres::Problem markerBAProblem_RepError;
 
-    std::vector<int> yzconstant_params = { 1, 2 };
+    const std::vector<int> yzconstant_params = { 1, 2 };
     auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
     auto yzconstant_parametrization2 = new ceres::SubsetParameterization(3, yzconstant_params);
 
@@ -170,10 +170,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
-// jointData[j].joint_to_parent_pose <<
-// 1.5*sqrt(2),0,0,cos(135/180.0*M_PI/2.0),0,0,sin(135/180.0*M_PI/2.0);
-
-#if 1
         // x always has to be positive; y,z have to be 0
         markerBAProblem.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
         markerBAProblem.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
@@ -189,26 +185,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             &joint_to_parent_pose(3), 4, quaternion_parameterization2);
 
         markerBAProblem_RepError.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-// markerBAProblem_RepError.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+        // markerBAProblem_RepError.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-
-// markerBAProblem_RepError.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
-#else
-        // x always has to be positive; y,z have to be 0
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
-
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(0));
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(3));
-
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(0), 3, yzconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(3), 4, quaternion_parameterization2);
-
-        markerBAProblem_RepError.SetParameterBlockConstant(&joint_to_parent_pose(0));
-        markerBAProblem_RepError.SetParameterBlockConstant(&joint_to_parent_pose(3));
-#endif
+        // markerBAProblem_RepError.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
     }
 
 
