@@ -155,8 +155,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     };
 
 
-    //#define ANGLEOFFSET
-
     ceres::Problem problem_simple;
     ceres::Problem problem_full;
 
@@ -256,9 +254,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
             // markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][numc]);
             // SET NOISE HERE
-            auto* alphaPrior
+            auto* anglePrior
                 = GaussianPrior1D::Create(joint_positions[j][numc], 1); // 0.05/180.0*M_PI);
-            problem_full.AddResidualBlock(alphaPrior, nullptr, &joint_positions[j][numc]);
+            problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][numc]);
 #endif
         }
         {
@@ -326,7 +324,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
         constexpr bool robustify = false;
-        auto* currentCostFunc = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
+        auto* simpleCostFn = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
         std::vector<double*> parameter_blocks;
         for (size_t j = 0; j < jointIndex + 1; j++)
         {
@@ -339,7 +337,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         const size_t dl = indexToDistinctLever[i];
         parameter_blocks.push_back(&camPoses[dl](0));
         parameter_blocks.push_back(&camPoses[dl](3));
-        problem_simple.AddResidualBlock(currentCostFunc,
+        problem_simple.AddResidualBlock(simpleCostFn,
             robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
             parameter_blocks);
 
@@ -384,18 +382,18 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 // }
 
 
-                auto* currentCostFunc2
+                auto* fullCostFn
                     = DynPTUPoseErrorTiltRepError::Create(tagObs.corners[c], tagCorners[c],
                         camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
-                problem_full.AddResidualBlock(currentCostFunc2,
+                problem_full.AddResidualBlock(fullCostFn,
                     robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
                     parameter_blocks);
 
-                repErrorFns.push_back([parameter_blocks, currentCostFunc2]() -> double
+                repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
                     {
-                        double err[2];
-                        (*currentCostFunc2).Evaluate(&parameter_blocks[0], &err[0], nullptr);
-                        return err[0] * err[0] + err[1] * err[1];
+                        Eigen::Vector2d err;
+                        fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                        return err.squaredNorm();
                     });
             }
         }
@@ -446,7 +444,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     std::cout << "Simple Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
+    std::cout << "Training Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 
     ceres::Solver::Summary summary2;
@@ -454,7 +452,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     std::cout << "Full Solution: " << summary2.termination_type << std::endl;
     std::cout << summary2.FullReport() << std::endl;
 
-    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
+    std::cout << "Training Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 
     // Print some results
@@ -496,10 +494,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 // std::cout << poseInverse(jointData[j].joint_to_parent_pose).transpose() << " !! "
                 // << std::endl;
 
-                double t = jointConfig[j] * 0.051429 / 180.0 * M_PI; //*0.00089779559;;
+                const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
                 // double t = joint_positions[j][indexToDistinctJoint[i][j]];
                 Eigen::Matrix<double, 7, 1> tiltRot;
-                tiltRot << 0, 0, 0, cos(t / 2.0), 0, 0, sin(t / 2.0);
+                tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
                 root = poseAdd(root, tiltRot);
 
                 auto invRet = poseInverse(root);
@@ -570,13 +568,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                        << std::endl;
             jsonStream << "\"q\": [" << root(3) << ", " << root(4) << ", " << root(5) << ", "
                        << root(6) << "]" << std::endl;
-
-            Eigen::Quaterniond tmpQ;
-            //            tmpQ.x() = root(4);
-            //            tmpQ.y() = root(5);
-            //            tmpQ.z() = root(6);
-            //            tmpQ.w() = root(3);
-            //            std::cout << "tmpQ.R = " << tmpQ.toRotationMatrix() << std::endl;
             jsonStream << "}";
             if (j < jointIndex)
                 jsonStream << ",";
