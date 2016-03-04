@@ -443,7 +443,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     ceres::Solver::Summary summary;
     Solve(options, &problem_simple, &summary);
-    std::cout << "Rough Solution: " << summary.termination_type << std::endl;
+    std::cout << "Simple Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
     std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
@@ -451,7 +451,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     ceres::Solver::Summary summary2;
     Solve(options, &problem_full, &summary2);
-    std::cout << "Repr Error Solution: " << summary2.termination_type << std::endl;
+    std::cout << "Full Solution: " << summary2.termination_type << std::endl;
     std::cout << summary2.FullReport() << std::endl;
 
     std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
@@ -603,16 +603,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
                 const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
-                for (size_t j = 0; j < jointIndex + 1;
-                     j++) // this loop could be swapped with the prev
-                {
+                for (size_t j = 0; j < jointIndex + 1; j++)
+                    joint_positions[j][numc] = jointConfig[j];
 
-                    joint_positions[j][numc] = jointConfig[j]; //*0.00089779559;
-                }
                 numc++;
             }
-            std::cout << "Forward kinecmatics Reprojection Error RMS: " << computeRMSE()
-                      << std::endl;
+            std::cout << "Test Reprojection Error RMS: " << computeRMSE() << std::endl;
         }
     }
 }
