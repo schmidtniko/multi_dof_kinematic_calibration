@@ -22,17 +22,17 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
     }
 
     // read camera models
-    for (const auto& cameraModelPair : rootNode.get_child("camera_models"))
-    {
-        pt::ptree cameraModelPt = cameraModelPair.second;
-        const int cameraId = cameraModelPt.get<int>("camera_model_id");
-        visual_marker_mapping::CameraModel camModel
-            = visual_marker_mapping::propertyTreeToCameraModel(cameraModelPt);
-        //        std::cout << "K = " << camModel.getK() << std::endl;
-        //        std::cout << "d = " << camModel.distortionCoefficients << std::endl;
-        cameraModelById[cameraId] = camModel;
-    }
-
+//    for (const auto& cameraModelPair : rootNode.get_child("camera_models"))
+//    {
+//        pt::ptree cameraModelPt = cameraModelPair.second;
+//        const int cameraId = cameraModelPt.get<int>("camera_model_id");
+//        visual_marker_mapping::CameraModel camModel
+//            = visual_marker_mapping::propertyTreeToCameraModel(cameraModelPt);
+//        //        std::cout << "K = " << camModel.getK() << std::endl;
+//        //        std::cout << "d = " << camModel.distortionCoefficients << std::endl;
+//        cameraModelById[cameraId] = camModel;
+//    }
+//
     for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
     {
         JointImageInfo ptuInfo;
