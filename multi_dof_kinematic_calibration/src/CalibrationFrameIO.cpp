@@ -21,18 +21,6 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
         jointNames.push_back(name.second.get_value<std::string>());
     }
 
-    // read camera models
-//    for (const auto& cameraModelPair : rootNode.get_child("camera_models"))
-//    {
-//        pt::ptree cameraModelPt = cameraModelPair.second;
-//        const int cameraId = cameraModelPt.get<int>("camera_model_id");
-//        visual_marker_mapping::CameraModel camModel
-//            = visual_marker_mapping::propertyTreeToCameraModel(cameraModelPt);
-//        //        std::cout << "K = " << camModel.getK() << std::endl;
-//        //        std::cout << "d = " << camModel.distortionCoefficients << std::endl;
-//        cameraModelById[cameraId] = camModel;
-//    }
-//
     for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
     {
         JointImageInfo ptuInfo;
@@ -42,7 +30,6 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
         for (const auto& jointName : jointNames)
         {
             pt::ptree jointPt = ptuPoseNode.second.get_child(jointName);
-            // double angle = jointPt.get<double>("angle");
             const int ticks = jointPt.get<int>("ticks");
             ptuInfo.jointConfiguration.push_back(ticks);
         }

@@ -742,6 +742,11 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         std::cout << "Read PTU Image Detections!" << std::endl;
     }
 
+    std::vector<visual_marker_mapping::CameraModel> cameraModels(2);
+    {
+//        cameraModels[0]
+//        cameraModels[1]
+    }
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
@@ -760,7 +765,6 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         }
         assert(
             detectedImageId >= 0); // if this fails, there is no detection for a certain ptu image
-
         Eigen::Quaterniond q;
         Eigen::Vector3d t;
         computeRelativeCameraPoseFromImg(ptuData.ptuImagePoses[i].cameraId, detectedImageId,
@@ -788,6 +792,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         // continue;
         // return;
     }
+    std::cout << "bin da" << std::endl;
 }
 //-----------------------------------------------------------------------------
 bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int imageId,
