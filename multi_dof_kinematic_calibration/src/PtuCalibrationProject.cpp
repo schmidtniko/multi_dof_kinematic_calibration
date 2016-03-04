@@ -467,6 +467,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
+    if (jointIndex + 1 < ptuData.jointNames.size())
+        return;
+
 #define exportJson
 #ifdef exportJson
     std::ofstream jsonStream;
@@ -475,9 +478,116 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     jsonStream << "\"camera_poses\":  [" << std::endl;
 #endif
 
-    if (jointIndex + 1 == ptuData.jointNames.size())
+    cameraPose = camPoses[0];
+    for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        cameraPose = camPoses[0];
+        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+            continue;
+
+        const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
+
+        Eigen::Matrix<double, 7, 1> root;
+        root << 0, 0, 0, 1, 0, 0, 0;
+
+        for (size_t j = 0; j < jointIndex + 1; j++)
+        {
+            root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
+            // std::cout << poseInverse(jointData[j].joint_to_parent_pose).transpose() << " !! "
+            // << std::endl;
+
+            const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
+            // double t = joint_positions[j][indexToDistinctJoint[i][j]];
+            Eigen::Matrix<double, 7, 1> tiltRot;
+            tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
+            root = poseAdd(root, tiltRot);
+
+            auto invRet = poseInverse(root);
+            DebugVis dbg;
+            dbg.cam.q = invRet.segment<4>(3);
+            dbg.cam.t = invRet.segment<3>(0);
+            dbg.type = 1;
+            //        debugVis.push_back(dbg);
+        }
+
+#ifdef exportJson
+        jsonStream << "{" << std::endl;
+#endif
+        // std::cout << "NumCamPoses" << camPoses.size() << std::endl;
+        for (size_t c = 0; c < camPoses.size(); c++)
+        {
+            auto ret = poseAdd(root, poseInverse(camPoses[c]));
+            // std::cout << ret.transpose() << std::endl;
+            auto invRet = poseInverse(ret);
+            DebugVis dbg;
+            dbg.cam.q = invRet.segment<4>(3);
+            dbg.cam.t = invRet.segment<3>(0);
+
+#ifdef exportJson
+            jsonStream << "\"q\": [" << ret(3) << ", " << ret(4) << ", " << ret(5) << ", " << ret(6)
+                       << "]," << std::endl;
+            jsonStream << "\"t\": [" << ret(0) << ", " << ret(1) << ", " << ret(2) << "],"
+                       << std::endl;
+            jsonStream << "\"index\": " << i << std::endl;
+#endif
+
+            debugVis.push_back(dbg);
+        }
+
+#ifdef exportJson
+        jsonStream << "}";
+        if (i < ptuData.ptuImagePoses.size() - 1)
+            jsonStream << ",";
+        jsonStream << std::endl;
+#endif
+    }
+
+
+    Eigen::Matrix<double, 7, 1> root;
+    root << 0, 0, 0, 1, 0, 0, 0;
+
+#ifdef exportJson
+    jsonStream << "], " << std::endl;
+    jsonStream << "\"axes\": [" << std::endl;
+#endif
+
+    for (size_t j = 0; j < jointIndex + 1; j++)
+    {
+        root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
+
+        jsonStream << "{" << std::endl;
+
+        auto invRet = poseInverse(root);
+        DebugVis dbg;
+        dbg.cam.q = invRet.segment<4>(3);
+        dbg.cam.t = invRet.segment<3>(0);
+        dbg.type = 1;
+
+// print for evaluation
+#ifdef exportJson
+        jsonStream << "\"joint\": " << j << "," << std::endl;
+        jsonStream << "\"t\":[" << root(0) << ", " << root(1) << ", " << root(2) << "],"
+                   << std::endl;
+        jsonStream << "\"q\": [" << root(3) << ", " << root(4) << ", " << root(5) << ", " << root(6)
+                   << "]" << std::endl;
+        jsonStream << "}";
+        if (j < jointIndex)
+            jsonStream << ",";
+        jsonStream << std::endl;
+#endif
+
+        debugVis.push_back(dbg);
+    }
+
+#ifdef exportJson
+    jsonStream << "]" << std::endl;
+    jsonStream << "}" << std::endl;
+    jsonStream.close();
+#endif
+
+    if (1)
+    {
+        // compute rms for forward kinematics
+        numc = 0;
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
             if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
@@ -485,122 +595,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
             const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
-            Eigen::Matrix<double, 7, 1> root;
-            root << 0, 0, 0, 1, 0, 0, 0;
-
             for (size_t j = 0; j < jointIndex + 1; j++)
-            {
-                root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
-                // std::cout << poseInverse(jointData[j].joint_to_parent_pose).transpose() << " !! "
-                // << std::endl;
+                joint_positions[j][numc] = jointConfig[j];
 
-                const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
-                // double t = joint_positions[j][indexToDistinctJoint[i][j]];
-                Eigen::Matrix<double, 7, 1> tiltRot;
-                tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
-                root = poseAdd(root, tiltRot);
-
-                auto invRet = poseInverse(root);
-                DebugVis dbg;
-                dbg.cam.q = invRet.segment<4>(3);
-                dbg.cam.t = invRet.segment<3>(0);
-                dbg.type = 1;
-                //        debugVis.push_back(dbg);
-            }
-
-#ifdef exportJson
-            jsonStream << "{" << std::endl;
-#endif
-            // std::cout << "NumCamPoses" << camPoses.size() << std::endl;
-            for (size_t c = 0; c < camPoses.size(); c++)
-            {
-                auto ret = poseAdd(root, poseInverse(camPoses[c]));
-                // std::cout << ret.transpose() << std::endl;
-                auto invRet = poseInverse(ret);
-                DebugVis dbg;
-                dbg.cam.q = invRet.segment<4>(3);
-                dbg.cam.t = invRet.segment<3>(0);
-
-#ifdef exportJson
-                jsonStream << "\"q\": [" << ret(3) << ", " << ret(4) << ", " << ret(5) << ", "
-                           << ret(6) << "]," << std::endl;
-                jsonStream << "\"t\": [" << ret(0) << ", " << ret(1) << ", " << ret(2) << "],"
-                           << std::endl;
-                jsonStream << "\"index\": " << i << std::endl;
-#endif
-
-                debugVis.push_back(dbg);
-            }
-
-#ifdef exportJson
-            jsonStream << "}";
-            if (i < ptuData.ptuImagePoses.size() - 1)
-                jsonStream << ",";
-            jsonStream << std::endl;
-#endif
+            numc++;
         }
-
-
-        Eigen::Matrix<double, 7, 1> root;
-        root << 0, 0, 0, 1, 0, 0, 0;
-
-#ifdef exportJson
-        jsonStream << "], " << std::endl;
-        jsonStream << "\"axes\": [" << std::endl;
-#endif
-
-        for (size_t j = 0; j < jointIndex + 1; j++)
-        {
-            root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
-
-            jsonStream << "{" << std::endl;
-
-            auto invRet = poseInverse(root);
-            DebugVis dbg;
-            dbg.cam.q = invRet.segment<4>(3);
-            dbg.cam.t = invRet.segment<3>(0);
-            dbg.type = 1;
-
-// print for evaluation
-#ifdef exportJson
-            jsonStream << "\"joint\": " << j << "," << std::endl;
-            jsonStream << "\"t\":[" << root(0) << ", " << root(1) << ", " << root(2) << "],"
-                       << std::endl;
-            jsonStream << "\"q\": [" << root(3) << ", " << root(4) << ", " << root(5) << ", "
-                       << root(6) << "]" << std::endl;
-            jsonStream << "}";
-            if (j < jointIndex)
-                jsonStream << ",";
-            jsonStream << std::endl;
-#endif
-
-            debugVis.push_back(dbg);
-        }
-
-#ifdef exportJson
-        jsonStream << "]" << std::endl;
-        jsonStream << "}" << std::endl;
-        jsonStream.close();
-#endif
-
-        if (1)
-        {
-            // compute rms for forward kinematics
-            numc = 0;
-            for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
-            {
-                if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
-                    continue;
-
-                const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
-
-                for (size_t j = 0; j < jointIndex + 1; j++)
-                    joint_positions[j][numc] = jointConfig[j];
-
-                numc++;
-            }
-            std::cout << "Test Reprojection Error RMS: " << computeRMSE() << std::endl;
-        }
+        std::cout << "Test Reprojection Error RMS: " << computeRMSE() << std::endl;
     }
 }
 //-----------------------------------------------------------------------------
