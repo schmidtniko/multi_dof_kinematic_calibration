@@ -440,7 +440,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
     ceres::Solver::Summary summary;
-    Solve(options, &problem_simple, &summary);
+    ceres::Solve(options, &problem_simple, &summary);
     std::cout << "Simple Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
@@ -448,7 +448,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
     ceres::Solver::Summary summary2;
-    Solve(options, &problem_full, &summary2);
+    ceres::Solve(options, &problem_full, &summary2);
     std::cout << "Full Solution: " << summary2.termination_type << std::endl;
     std::cout << summary2.FullReport() << std::endl;
 
