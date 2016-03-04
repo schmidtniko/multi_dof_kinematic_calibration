@@ -701,23 +701,21 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         std::cout << "Read PTU Image Detections!" << std::endl;
     }
 
-    std::vector<visual_marker_mapping::CameraModel> cameraModels(2);
+    std::map<int, visual_marker_mapping::CameraModel> cameraModelsById;
     {
         boost::property_tree::ptree cameraTree;
         boost::property_tree::json_parser::read_json(folder + "/cam0/camera_intrinsics.json", cameraTree);
-        cameraModels[0] = visual_marker_mapping::propertyTreeToCameraModel(cameraTree); 
+        cameraModelsById.emplace(0, visual_marker_mapping::propertyTreeToCameraModel(cameraTree)); 
 
         boost::property_tree::json_parser::read_json(folder + "/cam1/camera_intrinsics.json", cameraTree);
-        cameraModels[1] = visual_marker_mapping::propertyTreeToCameraModel(cameraTree);
-
-        std::cout << "cameraModels[0].getK() = " << cameraModels[0].getK() << std::endl;
-        std::cout << "cameraModels[1].getK() = " << cameraModels[1].getK() << std::endl;
+        cameraModelsById.emplace(1, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
     }
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        const visual_marker_mapping::CameraModel& camModel
-            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
+//        const visual_marker_mapping::CameraModel& camModel
+//            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
+        const visual_marker_mapping::CameraModel& camModel = cameraModelsById[ptuData.ptuImagePoses[i].cameraId];
 
         int detectedImageId = -1;
         for (size_t j = 0; j < ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size();
