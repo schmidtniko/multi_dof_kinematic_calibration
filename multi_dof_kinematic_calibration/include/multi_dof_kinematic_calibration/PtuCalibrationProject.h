@@ -12,7 +12,7 @@ struct PtuCalibrationProject
 {
     void processFolder(const std::string& folder);
 
-    void optimizeJoint(const std::string& jointName);
+    void optimizeJoint(size_t jointIndex);
 
     // Reconstruction
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructedTags;
@@ -32,7 +32,7 @@ struct PtuCalibrationProject
 
     /////////
 
-    std::map<int, visual_marker_mapping::Camera> reconstructedPoses;
+    std::map<size_t, visual_marker_mapping::Camera> reconstructedPoses;
 
     //////////
 
