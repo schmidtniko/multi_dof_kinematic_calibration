@@ -661,13 +661,13 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
         jointDataPt.add_child("translation", translationPt);
         jointDataPt.add_child("rotation", rotationPt);
         jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
-        jointDataPt.put("name", "joint_" + std::to_string(counter)); 
+        jointDataPt.put("name", "joint_" + std::to_string(counter));
 
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
         counter++;
     }
-   
+
     // add camera
 
     root.add_child("kinematic_chain", kinematicChainPt);
@@ -687,7 +687,6 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
     // Read Pan Tilt Data
     {
-        std::string filePath = folder + "/calibration_frames.json";
         ptuData = PtuImageCapture(folder + "/calibration_frames.json");
         std::cout << "Read PTU Data!" << std::endl;
     }
@@ -704,24 +703,32 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     std::map<int, visual_marker_mapping::CameraModel> cameraModelsById;
     {
         boost::property_tree::ptree cameraTree;
-        boost::property_tree::json_parser::read_json(folder + "/cam0/camera_intrinsics.json", cameraTree);
-        cameraModelsById.emplace(0, visual_marker_mapping::propertyTreeToCameraModel(cameraTree)); 
+        boost::property_tree::json_parser::read_json(
+            folder + "/cam0/camera_intrinsics.json", cameraTree);
+        cameraModelsById.emplace(0, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
 
-        boost::property_tree::json_parser::read_json(folder + "/cam1/camera_intrinsics.json", cameraTree);
-        cameraModelsById.emplace(1, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
+        boost::property_tree::ptree cameraTree2;
+        boost::property_tree::json_parser::read_json(
+            folder + "/cam1/camera_intrinsics.json", cameraTree2);
+        cameraModelsById.emplace(1, visual_marker_mapping::propertyTreeToCameraModel(cameraTree2));
     }
+	ptuData.cameraModelById=cameraModelsById;
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-//        const visual_marker_mapping::CameraModel& camModel
-//            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
-        const visual_marker_mapping::CameraModel& camModel = cameraModelsById[ptuData.ptuImagePoses[i].cameraId];
+        //        const visual_marker_mapping::CameraModel& camModel
+        //            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
+        const visual_marker_mapping::CameraModel& camModel
+            = cameraModelsById[ptuData.ptuImagePoses[i].cameraId];
 
         int detectedImageId = -1;
         for (size_t j = 0; j < ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size();
              j++)
         {
-            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(), ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images[j].filename.c_str()))
+            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
+                    ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId]
+                        .images[j]
+                        .filename.c_str()))
             {
                 detectedImageId = static_cast<int>(j);
                 break;
