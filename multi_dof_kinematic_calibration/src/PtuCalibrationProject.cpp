@@ -6,6 +6,7 @@
 #include "visual_marker_mapping/DetectionIO.h"
 #include "visual_marker_mapping/EigenCVConversions.h"
 #include "visual_marker_mapping/PropertyTreeUtilities.h"
+#include "visual_marker_mapping/CameraUtilities.h"
 
 #include "multi_dof_kinematic_calibration/CeresUtil.h"
 
@@ -702,8 +703,15 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
     std::vector<visual_marker_mapping::CameraModel> cameraModels(2);
     {
-//        cameraModels[0]
-//        cameraModels[1]
+        boost::property_tree::ptree cameraTree;
+        boost::property_tree::json_parser::read_json(folder + "/cam0/camera_intrinsics.json", cameraTree);
+        cameraModels[0] = visual_marker_mapping::propertyTreeToCameraModel(cameraTree); 
+
+        boost::property_tree::json_parser::read_json(folder + "/cam1/camera_intrinsics.json", cameraTree);
+        cameraModels[1] = visual_marker_mapping::propertyTreeToCameraModel(cameraTree);
+
+        std::cout << "cameraModels[0].getK() = " << cameraModels[0].getK() << std::endl;
+        std::cout << "cameraModels[1].getK() = " << cameraModels[1].getK() << std::endl;
     }
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
@@ -750,7 +758,6 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         // continue;
         // return;
     }
-    std::cout << "bin da" << std::endl;
 }
 //-----------------------------------------------------------------------------
 bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int imageId,
