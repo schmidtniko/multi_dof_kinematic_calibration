@@ -712,7 +712,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
             folder + "/cam1/camera_intrinsics.json", cameraTree2);
         cameraModelsById.emplace(1, visual_marker_mapping::propertyTreeToCameraModel(cameraTree2));
     }
-	ptuData.cameraModelById=cameraModelsById;
+    ptuData.cameraModelById = cameraModelsById;
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
