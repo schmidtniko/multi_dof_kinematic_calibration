@@ -51,6 +51,9 @@ struct PtuCalibrationProject
         // std::vector<double> joint_positions;
         double ticks_to_rad;
     };
+
+    Eigen::Matrix<double, 7, 1> cameraPose;
+
     std::vector<JointData> jointData;
 };
 }

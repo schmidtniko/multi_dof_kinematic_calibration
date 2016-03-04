@@ -497,6 +497,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         std::cout << camPoses[i].transpose() << std::endl;
 
     std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
+
 #define exportJson
 #ifdef exportJson
     std::ofstream jsonStream;
@@ -507,6 +508,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     if (jointIndex + 1 == ptuData.jointNames.size())
     {
+        cameraPose = camPoses[0];
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
             if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
@@ -658,15 +660,14 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
         jointDataPt.add_child("translation", translationPt);
         jointDataPt.add_child("rotation", rotationPt);
         jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
+        jointDataPt.put("name", "joint_" + std::to_string(counter)); 
 
-        if (counter == jointData.size())
-            jointDataPt.put("name", "camera");
-        else
-            jointDataPt.put("name", "joint_" + std::to_string(counter));
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
         counter++;
     }
+   
+    // add camera
 
     root.add_child("kinematic_chain", kinematicChainPt);
     boost::property_tree::write_json(filePath, root);
@@ -692,10 +693,10 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
     {
         ptuDetectionResults[0]
-            = visual_marker_mapping::readDetectionResult(folder + "/cam0/detectedMarkers.json");
+            = visual_marker_mapping::readDetectionResult(folder + "/cam0/marker_detections.json");
         std::cout << "Read PTU Image Detections!" << std::endl;
         ptuDetectionResults[1]
-            = visual_marker_mapping::readDetectionResult(folder + "/cam1/detectedMarkers.json");
+            = visual_marker_mapping::readDetectionResult(folder + "/cam1/marker_detections.json");
         std::cout << "Read PTU Image Detections!" << std::endl;
     }
 
@@ -705,17 +706,11 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         const visual_marker_mapping::CameraModel& camModel
             = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
 
-        // std::cout << camModel.getK() << std::endl;
-        // std::cout << camModel.distortionCoefficients.transpose() << std::endl;
-
         int detectedImageId = -1;
         for (size_t j = 0; j < ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size();
              j++)
         {
-            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                    ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId]
-                        .images[j]
-                        .filename.c_str()))
+            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(), ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images[j].filename.c_str()))
             {
                 detectedImageId = static_cast<int>(j);
                 break;
