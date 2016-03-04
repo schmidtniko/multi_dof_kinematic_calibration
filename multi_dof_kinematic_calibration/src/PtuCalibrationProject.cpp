@@ -424,14 +424,20 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         }
     }
     std::cout << "done creating problem " << std::endl;
-    // exit(0);
+
+    auto computeRMSE = [&repErrorFns]()
+    {
+        double rms = 0;
+        for (size_t i = 0; i < repErrorFns.size(); i++)
+        {
+            const double sqrError = repErrorFns[i]();
+            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
+            rms += sqrError;
+        }
+        return sqrt(rms / repErrorFns.size());
+    };
 
     ceres::Solver::Options options;
-    // #if (CERES_VERSION_MAJOR==1)&&(CERES_VERSION_MINOR==11)
-    //     options.linear_solver_ordering.reset(ordering);
-    // #else
-    //     options.linear_solver_ordering=ordering;
-    // #endif
     options.minimizer_progress_to_stdout = false;
     options.max_num_iterations = 100; // maxNumIterations;
     options.num_threads = 4; // ceresThreads;
@@ -464,16 +470,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     std::cout << "Rough Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
-    {
-        double rms = 0;
-        for (size_t i = 0; i < repErrorFns.size(); i++)
-        {
-            double sqrError = repErrorFns[i]();
-            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-            rms += sqrError;
-        }
-        std::cout << "Reprojection Error RMS: " << sqrt(rms / repErrorFns.size()) << std::endl;
-    }
+    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 
     ceres::Solver::Summary summary2;
@@ -520,16 +517,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
-    {
-        double rms = 0;
-        for (size_t i = 0; i < repErrorFns.size(); i++)
-        {
-            double sqrError = repErrorFns[i]();
-            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-            rms += sqrError;
-        }
-        std::cout << "Reprojection Error RMS: " << sqrt(rms / repErrorFns.size()) << std::endl;
-    }
+    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 #define exportJson
 #ifdef exportJson
     std::ofstream jsonStream;
@@ -667,17 +655,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 }
                 numc++;
             }
-            {
-                double rms = 0;
-                for (size_t i = 0; i < repErrorFns.size(); i++)
-                {
-                    double sqrError = repErrorFns[i]();
-                    // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-                    rms += sqrError;
-                }
-                std::cout << "Forward kinecmatics Reprojection Error RMS: "
-                          << sqrt(rms / repErrorFns.size()) << std::endl;
-            }
+            std::cout << "Forward kinecmatics Reprojection Error RMS: " << computeRMSE()
+                      << std::endl;
         }
     }
 }
