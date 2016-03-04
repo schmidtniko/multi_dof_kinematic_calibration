@@ -159,7 +159,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     ceres::Problem markerBAProblem;
     ceres::Problem markerBAProblem_RepError;
 
-    std::vector<int> yzconstant_params = { 1, 2 };
+    const std::vector<int> yzconstant_params = { 1, 2 };
     auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
     auto yzconstant_parametrization2 = new ceres::SubsetParameterization(3, yzconstant_params);
 
@@ -170,10 +170,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
-// jointData[j].joint_to_parent_pose <<
-// 1.5*sqrt(2),0,0,cos(135/180.0*M_PI/2.0),0,0,sin(135/180.0*M_PI/2.0);
-
-#if 1
         // x always has to be positive; y,z have to be 0
         markerBAProblem.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
         markerBAProblem.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
@@ -189,26 +185,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             &joint_to_parent_pose(3), 4, quaternion_parameterization2);
 
         markerBAProblem_RepError.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-// markerBAProblem_RepError.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+        // markerBAProblem_RepError.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-
-// markerBAProblem_RepError.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
-#else
-        // x always has to be positive; y,z have to be 0
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
-
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(0));
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(3));
-
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(0), 3, yzconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(3), 4, quaternion_parameterization2);
-
-        markerBAProblem_RepError.SetParameterBlockConstant(&joint_to_parent_pose(0));
-        markerBAProblem_RepError.SetParameterBlockConstant(&joint_to_parent_pose(3));
-#endif
+        // markerBAProblem_RepError.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
     }
 
 
@@ -424,14 +403,20 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         }
     }
     std::cout << "done creating problem " << std::endl;
-    // exit(0);
+
+    auto computeRMSE = [&repErrorFns]()
+    {
+        double rms = 0;
+        for (size_t i = 0; i < repErrorFns.size(); i++)
+        {
+            const double sqrError = repErrorFns[i]();
+            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
+            rms += sqrError;
+        }
+        return sqrt(rms / repErrorFns.size());
+    };
 
     ceres::Solver::Options options;
-    // #if (CERES_VERSION_MAJOR==1)&&(CERES_VERSION_MINOR==11)
-    //     options.linear_solver_ordering.reset(ordering);
-    // #else
-    //     options.linear_solver_ordering=ordering;
-    // #endif
     options.minimizer_progress_to_stdout = false;
     options.max_num_iterations = 100; // maxNumIterations;
     options.num_threads = 4; // ceresThreads;
@@ -464,16 +449,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     std::cout << "Rough Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
-    {
-        double rms = 0;
-        for (size_t i = 0; i < repErrorFns.size(); i++)
-        {
-            double sqrError = repErrorFns[i]();
-            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-            rms += sqrError;
-        }
-        std::cout << "Reprojection Error RMS: " << sqrt(rms / repErrorFns.size()) << std::endl;
-    }
+    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 
     ceres::Solver::Summary summary2;
@@ -520,16 +496,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
-    {
-        double rms = 0;
-        for (size_t i = 0; i < repErrorFns.size(); i++)
-        {
-            double sqrError = repErrorFns[i]();
-            // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-            rms += sqrError;
-        }
-        std::cout << "Reprojection Error RMS: " << sqrt(rms / repErrorFns.size()) << std::endl;
-    }
+    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 #define exportJson
 #ifdef exportJson
@@ -669,17 +636,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 }
                 numc++;
             }
-            {
-                double rms = 0;
-                for (size_t i = 0; i < repErrorFns.size(); i++)
-                {
-                    double sqrError = repErrorFns[i]();
-                    // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
-                    rms += sqrError;
-                }
-                std::cout << "Forward kinecmatics Reprojection Error RMS: "
-                          << sqrt(rms / repErrorFns.size()) << std::endl;
-            }
+            std::cout << "Forward kinecmatics Reprojection Error RMS: " << computeRMSE()
+                      << std::endl;
         }
     }
 }
