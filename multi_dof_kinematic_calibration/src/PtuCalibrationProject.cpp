@@ -305,7 +305,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     // curImage=0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+        const JointImageInfo& curJointData = ptuData.ptuImagePoses[i];
+        if (curJointData.cameraId != onlyCamId)
             continue;
 
         // only accept lever groups with at least 2 calibration frames
@@ -343,13 +344,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
         int detectedImageId = -1;
-        for (int j = 0;
-             j < (int)ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size(); j++)
+        for (int j = 0; j < (int)ptuDetectionResults[curJointData.cameraId].images.size(); j++)
         {
-            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                    ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId]
-                        .images[j]
-                        .filename.c_str()))
+            if (strstr(curJointData.imagePath.c_str(),
+                    ptuDetectionResults[curJointData.cameraId].images[j].filename.c_str()))
             {
                 detectedImageId = j;
                 break;
@@ -357,10 +355,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         }
 
         const visual_marker_mapping::CameraModel& camModel
-            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
+            = ptuData.cameraModelById[curJointData.cameraId];
 
-        for (const auto& tagObs :
-            ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].tagObservations)
+        for (const auto& tagObs : ptuDetectionResults[curJointData.cameraId].tagObservations)
         {
             if (tagObs.imageId != detectedImageId)
                 continue;
@@ -368,7 +365,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             if (tagIt == reconstructedTags.end())
                 continue;
 
-            const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
+            const visual_marker_mapping::ReconstructedTag& recTag = tagIt->second;
+
+            const std::vector<Eigen::Vector3d> tagCorners = recTag.computeMarkerCorners3D();
             for (size_t c = 0; c < 4; c++)
             {
                 // check origin pose
@@ -403,7 +402,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     auto computeRMSE = [&repErrorFns]()
     {
         double rms = 0;
-		for (const auto& errFn : repErrorFns)
+        for (const auto& errFn : repErrorFns)
         {
             const double sqrError = errFn();
             // std::cout << "RepError: " << sqrt(sqrError) << std::endl;
@@ -677,19 +676,17 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
+        const JointImageInfo& curJointInfo = ptuData.ptuImagePoses[i];
         //        const visual_marker_mapping::CameraModel& camModel
         //            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
         const visual_marker_mapping::CameraModel& camModel
-            = cameraModelsById[ptuData.ptuImagePoses[i].cameraId];
+            = cameraModelsById[curJointInfo.cameraId];
 
         int detectedImageId = -1;
-        for (size_t j = 0; j < ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].images.size();
-             j++)
+        for (size_t j = 0; j < ptuDetectionResults[curJointInfo.cameraId].images.size(); j++)
         {
-            if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),
-                    ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId]
-                        .images[j]
-                        .filename.c_str()))
+            if (strstr(curJointInfo.imagePath.c_str(),
+                    ptuDetectionResults[curJointInfo.cameraId].images[j].filename.c_str()))
             {
                 detectedImageId = static_cast<int>(j);
                 break;
@@ -699,8 +696,8 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
             detectedImageId >= 0); // if this fails, there is no detection for a certain ptu image
         Eigen::Quaterniond q;
         Eigen::Vector3d t;
-        computeRelativeCameraPoseFromImg(ptuData.ptuImagePoses[i].cameraId, detectedImageId,
-            camModel.getK(), camModel.distortionCoefficients, q, t);
+        computeRelativeCameraPoseFromImg(curJointInfo.cameraId, detectedImageId, camModel.getK(),
+            camModel.distortionCoefficients, q, t);
 
         DebugVis dbg;
         dbg.cam.setQuat(q);
