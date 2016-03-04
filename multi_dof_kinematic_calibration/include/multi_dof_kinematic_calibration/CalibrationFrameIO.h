@@ -22,7 +22,6 @@ namespace multi_dof_kinematic_calibration
 {
 struct JointImageInfo
 {
-    int locationId;
     int cameraId = -1;
     std::string imagePath = "";
     std::vector<int> jointConfiguration; // jointName --> {ticks}
