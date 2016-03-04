@@ -5,6 +5,8 @@
 #include "visual_marker_mapping/ReconstructionIO.h"
 #include "visual_marker_mapping/DetectionIO.h"
 #include "visual_marker_mapping/EigenCVConversions.h"
+#include "visual_marker_mapping/PropertyTreeUtilities.h"
+
 #include "multi_dof_kinematic_calibration/CeresUtil.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -603,7 +605,7 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
         Eigen::Matrix<double, 7, 1> world_to_cam;
         world_to_cam.segment<3>(0) = reconstructedPoses[i].t;
         world_to_cam.segment<4>(3) = reconstructedPoses[i].q;
-        Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
+        //Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
         constexpr bool robustify = false;
@@ -937,18 +939,36 @@ void PtuCalibrationProject::optimizeJoint(const std::string& jointName)
     }
 }
 //-----------------------------------------------------------------------------
-void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath)
+void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath) const
 {
     namespace pt = boost::property_tree;
     pt::ptree root;
-    // TODO export results
-    //    for (size_t i=0;i<ptuData.ptuImagePoses.size();i++)
-    //    {
-    //
-    //        for (int j=0;j<jointIndex+1;j++) // this loop could be swapped with the prev
-    //        {
-    //        }
-    //    }
+   
+    pt::ptree kinematicChainPt; 
+    size_t counter = 1;
+    for (const auto &joint : jointData)
+    {
+        const Eigen::Vector3d translation = joint.joint_to_parent_pose.head(3);
+        const Eigen::Vector4d rotation = joint.joint_to_parent_pose.segment<4>(3);
+        pt::ptree translationPt = visual_marker_mapping::matrix2PropertyTreeEigen(translation); 
+        pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation); 
+        
+        pt::ptree jointDataPt;
+        jointDataPt.add_child("translation", translationPt);
+        jointDataPt.add_child("rotation", rotationPt);
+        jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
+
+        if(counter == jointData.size())
+            jointDataPt.put("name", "camera"); 
+        else
+            jointDataPt.put("name", "joint_" + std::to_string(counter));
+
+        kinematicChainPt.push_back(std::make_pair("",jointDataPt));
+        counter++;
+    }
+    
+    root.add_child("kinematic_chain", kinematicChainPt);
+    boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
 void PtuCalibrationProject::processFolder(const std::string& folder)

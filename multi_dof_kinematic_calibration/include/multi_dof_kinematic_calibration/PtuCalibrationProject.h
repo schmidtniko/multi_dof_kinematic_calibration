@@ -27,7 +27,7 @@ struct PtuCalibrationProject
         const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
         Eigen::Vector3d& t);
 
-    void exportCalibrationResults(const std::string& filePath);
+    void exportCalibrationResults(const std::string& filePath) const;
 
 
     /////////
