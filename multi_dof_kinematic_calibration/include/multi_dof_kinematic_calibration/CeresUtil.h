@@ -132,8 +132,8 @@ struct GaussianPrior1D
     // the client code.
     static ceres::CostFunction* Create(const double mu, const double sigma)
     {
-        return (
-            new ceres::AutoDiffCostFunction<GaussianPrior1D, 1, 1>(new GaussianPrior1D(mu, sigma)));
+        return new ceres::AutoDiffCostFunction<GaussianPrior1D, 1, 1>(
+            new GaussianPrior1D(mu, sigma));
     }
 
     double mu;
@@ -212,9 +212,9 @@ struct OpenCVReprojectionError
     static ceres::CostFunction* Create(const Eigen::Vector2d& observation,
         const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K)
     {
-        return (new ceres::AutoDiffCostFunction<OpenCVReprojectionError, 2, 3, 4,
+        return new ceres::AutoDiffCostFunction<OpenCVReprojectionError, 2, 3, 4,
             3>( //  residuals, camPose, tagPose
-            new OpenCVReprojectionError(observation, d, K)));
+            new OpenCVReprojectionError(observation, d, K));
     }
 
     Eigen::Vector2d observation;
