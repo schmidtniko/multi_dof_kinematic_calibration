@@ -25,7 +25,7 @@ namespace multi_dof_kinematic_calibration
 struct DynPTUPoseErrorTiltRepError
 {
     DynPTUPoseErrorTiltRepError(const Eigen::Vector2d& observation, const Eigen::Vector3d& point_3d,
-        const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K, int numJoints)
+        const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K, size_t numJoints)
         : repError(observation, d, K)
         , point_3d(point_3d)
         , numJoints(numJoints)
@@ -59,11 +59,11 @@ struct DynPTUPoseErrorTiltRepError
     // the client code.
     static ceres::CostFunction* Create(const Eigen::Vector2d& observation,
         const Eigen::Vector3d& point_3d, const Eigen::Matrix<double, 5, 1>& d,
-        const Eigen::Matrix3d& K, int numJoints)
+        const Eigen::Matrix3d& K, size_t numJoints)
     {
         auto cost_function = new ceres::DynamicAutoDiffCostFunction<DynPTUPoseErrorTiltRepError, 4>(
             new DynPTUPoseErrorTiltRepError(observation, point_3d, d, K, numJoints));
-        for (int i = 0; i < numJoints; i++)
+        for (size_t i = 0; i < numJoints; i++)
         {
             cost_function->AddParameterBlock(3);
             cost_function->AddParameterBlock(4);
@@ -78,12 +78,12 @@ struct DynPTUPoseErrorTiltRepError
 
     OpenCVReprojectionError repError;
     Eigen::Vector3d point_3d;
-    int numJoints;
+    size_t numJoints;
 };
 
 struct DynPTUPoseErrorTilt
 {
-    DynPTUPoseErrorTilt(const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, int numJoints)
+    DynPTUPoseErrorTilt(const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
         : expected_world_to_cam(expected_world_to_cam)
         , numJoints(numJoints)
     {
@@ -116,11 +116,11 @@ struct DynPTUPoseErrorTilt
     // Factory to hide the construction of the CostFunction object from
     // the client code.
     static ceres::CostFunction* Create(
-        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, int numJoints)
+        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
     {
         auto cost_function = new ceres::DynamicAutoDiffCostFunction<DynPTUPoseErrorTilt, 4>(
             new DynPTUPoseErrorTilt(expected_world_to_cam, numJoints));
-        for (int i = 0; i < numJoints; i++)
+        for (size_t i = 0; i < numJoints; i++)
         {
             cost_function->AddParameterBlock(3);
             cost_function->AddParameterBlock(4);
@@ -134,7 +134,7 @@ struct DynPTUPoseErrorTilt
     }
 
     Eigen::Matrix<double, 7, 1> expected_world_to_cam;
-    int numJoints;
+    size_t numJoints;
 };
 
 
@@ -793,423 +793,6 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         // continue;
         // return;
     }
-// optimizeJoint(ptuData.jointNames[1]);
-// optimizeJoint(ptuData.jointNames[2]);
-#if 0
-	///////////////////////////////////////////
-	// Process
-
-	int numCam1Images=0;
-	std::map<int, int> distinctTiltTicks;
-
-	int tickNum=0;
-
- 	for (size_t i=0;i<ptuData.actuatorPoses.size();i++)
- 	{
- 		if (ptuData.actuatorPoses[i].cameraId!=1)
- 			continue;
-
- 		distinctTiltTicks.emplace(ptuData.actuatorPoses[i].tiltTicks, distinctTiltTicks.size());
-
- 		const camSurv::CameraModel& camModel = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
-
-        int detectedImageId=-1;
-        for (size_t j=0;j<ptuDetectionResult.images.size();j++)
-        {
-        	if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
-        	{
-        		detectedImageId=static_cast<int>(j);
-        		break;
-        	}
-        }
-        assert(detectedImageId>=0); // if this fails, there is no detection for a certain ptu image
-        
-        Eigen::Quaterniond q;
-        Eigen::Vector3d t;
-        computeRelativeCameraPoseFromImg(detectedImageId, camModel.getK(), camModel.distortionCoefficients, q, t);
-
-         DebugVis dbg;
-         dbg.cam.setQuat(q);
-         dbg.cam.t=t;
-         //debugVis.push_back(dbg);
-
-        reconstructedPoses[i]=dbg.cam;
-
-
-        //std::cout << ptuData.ptuImagePoses[i].tiltTicks << std::endl;
-
-        numCam1Images++;
- 	}
-
- 	// ceres problem aufbauen
- 	{
- 		auto poseInverse=[](const Eigen::Matrix<double,7,1>& pose)
-	    {
-	    	Eigen::Matrix<double,7,1> ret;
-	    	Eigen::Quaterniond q;
-	    	q.w()=pose(3);
-	    	q.x()=pose(4);
-	    	q.y()=pose(5);
-	    	q.z()=pose(6);
-	    	ret.segment<3>(0)=-q.toRotationMatrix().transpose()*pose.segment<3>(0);
-	    	ret(3)=pose(3);
-	    	ret.segment<3>(4)=-pose.segment<3>(4);
-	    	return ret;
-	    };
-	    auto poseAdd=[](const Eigen::Matrix<double,7,1>& x, const Eigen::Matrix<double,7,1>& d) -> Eigen::Matrix<double,7,1>
-	    {
-	    	Eigen::Quaterniond qx(x(3),x(4),x(5),x(6));
-	    	Eigen::Quaterniond qd(d(3),d(4),d(5),d(6));
-	    	Eigen::Quaterniond qres=qx*qd;
-	    	Eigen::Matrix<double,7,1> ret;
-	    	ret.segment<3>(0)=x.segment<3>(0)+qx.toRotationMatrix()*d.segment<3>(0);
-	    	ret(3)=qres.w();	ret(4)=qres.x();	ret(5)=qres.y();	ret(6)=qres.z();
-	    	return ret;
-	    };
-
-
-#define FULLPROBLEM
-#define ANGLEOFFSET
-
-	    ceres::Problem markerBAProblem;
-
-        ceres::Problem markerBAProblem_RepError;
-
- 		Eigen::Matrix<double,7,1> panPoseInv;
- 		panPoseInv << 0,0,0,1,0,0,0;
-
-        std::vector<double> alphas(numCam1Images);
-#ifdef FULLPROBLEM
-        Eigen::Matrix<double, 7,1> tiltPoseInv;
-        tiltPoseInv << 0,0,0,1,0,0,0;
-
-        std::vector<double> betas(numCam1Images);
-        Eigen::Matrix<double,7,1> camPose;
-#else
- 		std::vector<Eigen::Matrix<double,7,1> > camPoses;
- 		camPoses.resize(distinctTiltTicks.size());
-#endif
-
-        
-        std::vector<int> yzconstant_params={1,2};
-        auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
-        auto yzconstant_parametrization2 = new ceres::SubsetParameterization(3, yzconstant_params);
-
-        std::vector<int> constant_params={2};
-        auto zconstant_parametrization = new ceres::SubsetParameterization(3, constant_params);
-        auto zconstant_parametrization2 = new ceres::SubsetParameterization(3, constant_params);
-
-        std::vector<int> yconstant_params={1,2};
-        auto yconstant_parametrization = nullptr;//new ceres::SubsetParameterization(3, yconstant_params);
-        auto yconstant_parametrization2 = nullptr;//new ceres::SubsetParameterization(3, yconstant_params);
-
-
- 		auto quaternion_parameterization = new ceres::QuaternionParameterization;
-        auto quaternion_parameterization2 = new ceres::QuaternionParameterization;
-        
-        markerBAProblem.AddParameterBlock(&panPoseInv(0), 3, yzconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&panPoseInv(3), 4, quaternion_parameterization);
-
-        markerBAProblem_RepError.AddParameterBlock(&panPoseInv(0), 3, yzconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(&panPoseInv(3), 4, quaternion_parameterization2);
-
-#ifdef FULLPROBLEM
-        markerBAProblem.AddParameterBlock(&tiltPoseInv(0), 3, yzconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&tiltPoseInv(3), 4, quaternion_parameterization);
-
-        markerBAProblem_RepError.AddParameterBlock(&tiltPoseInv(0), 3, yzconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(&tiltPoseInv(3), 4, quaternion_parameterization2);
-#endif
-
-
-        int curImage=0;
-        for (size_t i=0;i<ptuData.ptuImagePoses.size();i++)
- 		{
- 			if (ptuData.ptuImagePoses[i].cameraId!=1)
- 				continue;
-
- 			alphas[curImage]=ptuData.ptuImagePoses[i].panAngle;
-            //std::cout << ptuData.ptuImagePoses[i].panAngle << std::endl;
- 			markerBAProblem.AddParameterBlock(&alphas[curImage], 1);
-            markerBAProblem.SetParameterBlockConstant(&alphas[curImage]);
-
-            markerBAProblem_RepError.AddParameterBlock(&alphas[curImage], 1);
-#ifndef ANGLEOFFSET
-            markerBAProblem_RepError.SetParameterBlockConstant(&alphas[curImage]);
-#else
-            auto* alphaPrior = GaussianPrior1D::Create(alphas[curImage], 0.05/180.0*M_PI); 
-            markerBAProblem_RepError.AddResidualBlock(alphaPrior, nullptr, &alphas[curImage]);
-#endif
-#ifdef FULLPROBLEM
-            betas[curImage]=ptuData.ptuImagePoses[i].tiltAngle;
-            markerBAProblem.AddParameterBlock(&betas[curImage], 1);
-            markerBAProblem.SetParameterBlockConstant(&betas[curImage]);
-
-            markerBAProblem_RepError.AddParameterBlock(&betas[curImage], 1);
-#ifndef ANGLEOFFSET
-            markerBAProblem_RepError.SetParameterBlockConstant(&betas[curImage]);
-#else
-            auto* betaPrior = GaussianPrior1D::Create(betas[curImage], 0.05/180.0*M_PI); 
-            markerBAProblem_RepError.AddResidualBlock(betaPrior, nullptr, &betas[curImage]);
-#endif
-#endif
-
- 			curImage++;
-        }
-
-
-#ifdef FULLPROBLEM
-        camPose << 0,0,0,1,0,0,0;
-        markerBAProblem.AddParameterBlock(&camPose(0), 3, yconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&camPose(3), 4, quaternion_parameterization);
-
-        markerBAProblem_RepError.AddParameterBlock(&camPose(0), 3, yconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(&camPose(3), 4, quaternion_parameterization2);
-#else
-        for (int i=0;i<distinctTiltTicks.size();i++)
-        {
-        	camPoses[i] << 0,0,0,1,0,0,0;
-        	markerBAProblem.AddParameterBlock(&camPoses[i](0), 3);
-            markerBAProblem.AddParameterBlock(&camPoses[i](3), 4, quaternion_parameterization);
-        }
-#endif
-
-        curImage=0;
-       	for (size_t i=0;i<ptuData.ptuImagePoses.size();i++)
-	 	{
- 			if (ptuData.ptuImagePoses[i].cameraId!=1)
- 				continue;
-
- 			Eigen::Matrix<double,7,1> camPose_origin;
- 			camPose_origin.segment<3>(0)=reconstructedPoses[i].t;
- 			camPose_origin.segment<4>(3)=reconstructedPoses[i].q;
- 			camPose_origin=poseInverse(camPose_origin); // cam to world
- 			std::cout << "CamPose_Origin : " << camPose_origin.transpose() << std::endl;
-
-#ifdef FULLPROBLEM
-            constexpr bool robustify = true;
-            auto* currentCostFunc = PTUPoseErrorTilt::Create(camPose_origin);
-            markerBAProblem.AddResidualBlock(currentCostFunc,
-                                             robustify?new ceres::HuberLoss(1.0):nullptr,//new ceres::CauchyLoss(3),
-                                             &panPoseInv(0), &panPoseInv(3), &alphas[curImage],
-                                             &tiltPoseInv(0), &tiltPoseInv(3), &betas[curImage],
-                                             &camPose(0), &camPose(3));
-
-            int detectedImageId=-1;
-            for (size_t j=0;j<ptuDetectionResult.images.size();j++)
-            {
-                if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
-                {
-                    detectedImageId=static_cast<int>(j);
-                    break;
-                }
-            }
-
-            const camSurv::CameraModel& camModel = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
-
-            for (const auto& tagObs : ptuDetectionResult.tagObservations)
-            {
-                if (tagObs.imageId!=detectedImageId)
-                    continue;
-                const auto tagIt = reconstructedTags.find(tagObs.tagId);
-                if (tagIt == reconstructedTags.end())
-                    continue;
-
-                const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
-                for (int c=0;c<4;c++)
-                {
-                    // check origin pose
-                    // {
-                    //     OpenCVReprojectionError repErr(tagObs.corners[c], camModel.distortionCoefficients,camModel.getK());
-                    //     repErr.print=true;
-                    //     double res[2];
-                    //     repErr(&camPose_origin(0), &camPose_origin(3), &tagCorners[c](0), res);
-                    // }
-                    //
-
-                    auto* currentCostFunc2 = PTUPoseErrorTiltRepError::Create(tagObs.corners[c],tagCorners[c],camModel.distortionCoefficients,camModel.getK());
-                    markerBAProblem_RepError.AddResidualBlock(currentCostFunc2,
-                                                 robustify?new ceres::HuberLoss(1.0):nullptr,//new ceres::CauchyLoss(3),
-                                                 &panPoseInv(0), &panPoseInv(3), &alphas[curImage],
-                                                 &tiltPoseInv(0), &tiltPoseInv(3), &betas[curImage],
-                                                 &camPose(0), &camPose(3));
-                }
-            }
-#else
- 			auto* currentCostFunc = PTUPoseError::Create(camPose_origin);
-
- 			bool robustify = true;
-
- 			int curTickIndex = distinctTiltTicks[ptuData.ptuImagePoses[i].tiltTicks];
-
-            markerBAProblem.AddResidualBlock(currentCostFunc,
-                                             robustify?new ceres::HuberLoss(1.0):nullptr,//new ceres::CauchyLoss(3),
-                                             &panPose(0), &panPose(3), &alphas[curImage],
-                                             &camPoses[curTickIndex](0), &camPoses[curTickIndex](3));
-#endif
-            curImage++;
-            //break;
-		}
-		std::cout << "done creating problem " << std::endl;
-
-		ceres::Solver::Options options;
-	// #if (CERES_VERSION_MAJOR==1)&&(CERES_VERSION_MINOR==11)
-	//     options.linear_solver_ordering.reset(ordering);
-	// #else
-	//     options.linear_solver_ordering=ordering;
-	// #endif
-	    options.minimizer_progress_to_stdout = false;
-	    options.max_num_iterations = 100;//maxNumIterations;
-	    options.num_threads=4;//ceresThreads;
-	    options.num_linear_solver_threads = 4;//ceresThreads;
-	    //options.eta = 1e-2;
-
-	    ceres::Solver::Summary summary;
-	    Solve(options, &markerBAProblem, &summary);
-        std::cout << "Solution " << summary.termination_type << std::endl;
-
-        ceres::Solver::Summary summary2;
-        Solve(options, &markerBAProblem_RepError, &summary2);
-        std::cout << "Solution2 " << summary2.termination_type << std::endl;
-	    //if (printSummary)
-	    std::cout << summary2.FullReport() << std::endl;
-
-        panPoseInv(0)=fabs(panPoseInv(0));
-        tiltPoseInv(0)=fabs(tiltPoseInv(0));
-
-	    std::cout << "PanPose: " << poseInverse(panPoseInv).transpose() << std::endl;
-        std::cout << "TiltPose: " << poseInverse(tiltPoseInv).transpose() << std::endl;
-
-		std::cout << "Alphas: ";
-	    for (int i=0;i<alphas.size();i++)
-	    	std::cout << alphas[i] << ", ";
-	    std::cout << std::endl;
-
-#ifdef FULLPROBLEM
-        std::cout << "CamPose: " << std::endl;
-        std::cout << camPose.transpose() << std::endl;
-#else
-	    std::cout << "CamPoses: " << std::endl;
-	    for (int i=0;i<camPoses.size();i++)
-	    	std::cout << camPoses[i].transpose() << std::endl;
-#endif
-
-	    //auto invPanPose=poseInverse(panPose);
-
-        // Render Pan Pose
-        {
-            DebugVis dbg;
-            dbg.cam.q=panPoseInv.segment<4>(3);
-            dbg.cam.t=panPoseInv.segment<3>(0);
-            debugVis.push_back(dbg);
-        }
-#ifdef FULLPROBLEM
-        // Render Tilt Pose
-        {
-            auto invp=poseInverse(poseAdd(poseInverse(panPoseInv),poseInverse(tiltPoseInv)));
-
-            DebugVis dbg;
-            dbg.cam.q=invp.segment<4>(3);
-            dbg.cam.t=invp.segment<3>(0);
-            debugVis.push_back(dbg);
-        }
-
-        std::ofstream dbgAngleFile("dbgAngles.txt");
-        std::vector<double> reprojectionErrors;
-        curImage=0;
-        double meanRepErrorSqr=0.0;
-        int numRepErrors=0;
-        for (size_t i=0;i<ptuData.ptuImagePoses.size();i++)
-        {
-            if (ptuData.ptuImagePoses[i].cameraId!=1)
-                continue;
-            double p=ptuData.ptuImagePoses[i].panAngle;
-            Eigen::Matrix<double,7,1> panRot;
-            panRot << 0,0,0,cos(p/2.0),0,0,sin(p/2.0);
-
-            double t=ptuData.ptuImagePoses[i].tiltAngle;
-            Eigen::Matrix<double,7,1> tiltRot;
-            tiltRot << 0,0,0,cos(t/2.0),0,0,sin(t/2.0);
-
-            dbgAngleFile << ptuData.ptuImagePoses[i].panAngle << " " << ptuData.ptuImagePoses[i].panAngle-alphas[curImage] << " " <<  ptuData.ptuImagePoses[i].tiltAngle-betas[curImage] << std::endl;
-
-            auto invp=poseInverse(poseAdd(poseAdd(poseAdd(poseAdd(poseInverse(panPoseInv),panRot),poseInverse(tiltPoseInv)),tiltRot),camPose));
-
-            DebugVis dbg;
-            dbg.cam.q=invp.segment<4>(3);
-            dbg.cam.t=invp.segment<3>(0);
-            debugVis.push_back(dbg);
-
-
-
-            // haesslich!
-
-            int detectedImageId=-1;
-            for (size_t j=0;j<ptuDetectionResult.images.size();j++)
-            {
-                if (strstr(ptuData.ptuImagePoses[i].imagePath.c_str(),ptuDetectionResult.images[j].filename.c_str()))
-                {
-                    detectedImageId=static_cast<int>(j);
-                    break;
-                }
-            }
-
-            const camSurv::CameraModel& camModel = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
-
-            for (const auto& tagObs : ptuDetectionResult.tagObservations)
-            {
-                if (tagObs.imageId!=detectedImageId)
-                    continue;
-                const auto tagIt = reconstructedTags.find(tagObs.tagId);
-                if (tagIt == reconstructedTags.end())
-                    continue;
-
-                const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
-
-                for (int c=0;c<4;c++)
-                {
-                    PTUPoseErrorTiltRepError currentCostFunc2(tagObs.corners[c],tagCorners[c],camModel.distortionCoefficients,camModel.getK());
-                    currentCostFunc2.repError.print=false;
-
-                    Eigen::Vector2d repError;
-
-                    currentCostFunc2(&panPoseInv(0), &panPoseInv(3), &alphas[curImage],
-                                     &tiltPoseInv(0), &tiltPoseInv(3), &betas[curImage],
-                                     &camPose(0), &camPose(3), &repError(0));
-
-                    //std::cout <<  "Rep Error: " << repError.norm() << std::endl;
-                    meanRepErrorSqr+=repError.squaredNorm();
-                    numRepErrors++;
-
-                    reprojectionErrors.push_back(repError.norm());
-                }
-            }
-            curImage++;
-        }
-        meanRepErrorSqr/=numRepErrors;
-        meanRepErrorSqr=sqrt(meanRepErrorSqr);
-        std::cout << "RMS Rep Error: " << meanRepErrorSqr << std::endl;
-
-        // Dump Rep Errors
-        {
-            std::ofstream myfile(folder + "/reprojectionErrors.txt");
-            for (const auto& repError : reprojectionErrors)
-                myfile << repError << "\n";
-        }
-
-#else
-        for (int i=0;i<camPoses.size();i++)
-        {
-        	auto ret=poseAdd(poseInverse(panPoseInv),camPoses[i]);
-        	auto invRet=poseInverse(ret);
-        	DebugVis dbg;
-	        dbg.cam.q=invRet.segment<4>(3);
-	        dbg.cam.t=invRet.segment<3>(0);
-	        debugVis.push_back(dbg);
-        }
-#endif
-    }
-#endif
 }
 //-----------------------------------------------------------------------------
 bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int imageId,
