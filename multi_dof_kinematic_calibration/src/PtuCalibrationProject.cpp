@@ -157,8 +157,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     //#define ANGLEOFFSET
 
-    ceres::Problem markerBAProblem;
-    ceres::Problem markerBAProblem_RepError;
+    ceres::Problem problem_simple;
+    ceres::Problem problem_full;
 
     const std::vector<int> yzconstant_params = { 1, 2 };
     auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
@@ -172,23 +172,21 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
         // x always has to be positive; y,z have to be 0
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
-        markerBAProblem.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
+        problem_simple.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
+        problem_simple.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
 
-        // markerBAProblem.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
+        // problem_simple.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
 
-        markerBAProblem.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-        // markerBAProblem.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+        problem_simple.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
+        // problem_simple.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(0), 3, yzconstant_parametrization2);
-        markerBAProblem_RepError.AddParameterBlock(
-            &joint_to_parent_pose(3), 4, quaternion_parameterization2);
+        problem_full.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization2);
+        problem_full.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization2);
 
-        markerBAProblem_RepError.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-        // markerBAProblem_RepError.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+        problem_full.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
+        // problem_full.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-        // markerBAProblem_RepError.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
+        // problem_full.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
     }
 
 
@@ -212,59 +210,56 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
+        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+            continue;
 
         const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
 
         for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
         {
-            if (0)
-            { // one angle variable for each distinct(!) ptu pose
-                auto it = distinctJointPositions[j].find(jointConfig[j]);
-                if (it == distinctJointPositions[j].end())
-                {
-                    const size_t dj = distinctJointPositions[j].size();
-                    indexToDistinctJoint[i].push_back(dj);
-                    distinctJointPositions[j].emplace(jointConfig[j], dj);
+#if 0 // one angle variable for each distinct(!) ptu pose
+			auto it = distinctJointPositions[j].find(jointConfig[j]);
+			if (it == distinctJointPositions[j].end())
+			{
+				const size_t dj = distinctJointPositions[j].size();
+				indexToDistinctJoint[i].push_back(dj);
+				distinctJointPositions[j].emplace(jointConfig[j], dj);
 
-                    //
-                    joint_positions[j][dj]
-                        = jointConfig[j] * 0.051429 / 180.0 * M_PI; //*0.00089779559;
-                    markerBAProblem.AddParameterBlock(&joint_positions[j][dj], 1);
-                    markerBAProblem.SetParameterBlockConstant(&joint_positions[j][dj]);
+				//
+				joint_positions[j][dj]
+					= jointConfig[j] * 0.051429 / 180.0 * M_PI; //*0.00089779559;
+				markerBAProblem.AddParameterBlock(&joint_positions[j][dj], 1);
+				markerBAProblem.SetParameterBlockConstant(&joint_positions[j][dj]);
 
-                    markerBAProblem_RepError.AddParameterBlock(&joint_positions[j][dj], 1);
+				markerBAProblem_RepError.AddParameterBlock(&joint_positions[j][dj], 1);
 
-                    // markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][dj]);
-                    auto* alphaPrior
-                        = GaussianPrior1D::Create(joint_positions[j][dj], 0.05 / 180.0 * M_PI);
-                    markerBAProblem_RepError.AddResidualBlock(
-                        alphaPrior, nullptr, &joint_positions[j][dj]);
-                }
-                else
-                    indexToDistinctJoint[i].push_back(it->second);
-            }
-            else
-            { // one angle variable per ptu pose
-                indexToDistinctJoint[i].push_back(numc);
-                distinctJointPositions[j].emplace(jointConfig[j], numc);
+				// markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][dj]);
+				auto* alphaPrior
+					= GaussianPrior1D::Create(joint_positions[j][dj], 0.05 / 180.0 * M_PI);
+				markerBAProblem_RepError.AddResidualBlock(
+					alphaPrior, nullptr, &joint_positions[j][dj]);
+			}
+			else
+				indexToDistinctJoint[i].push_back(it->second);
+#else
+            // one angle variable per ptu pose
+            indexToDistinctJoint[i].push_back(numc);
+            distinctJointPositions[j].emplace(jointConfig[j], numc);
 
-                //
-                joint_positions[j][numc]
-                    = jointConfig[j]; //*0.051429/180.0*M_PI*0.8;//*0.00089779559;
-                markerBAProblem.AddParameterBlock(&joint_positions[j][numc], 1);
-                markerBAProblem.SetParameterBlockConstant(&joint_positions[j][numc]);
+            //
+            joint_positions[j][numc] = jointConfig[j]; //*0.051429/180.0*M_PI*0.8;//*0.00089779559;
+            problem_simple.AddParameterBlock(&joint_positions[j][numc], 1);
+            problem_simple.SetParameterBlockConstant(&joint_positions[j][numc]);
 
-                markerBAProblem_RepError.AddParameterBlock(&joint_positions[j][numc], 1);
+            problem_full.AddParameterBlock(&joint_positions[j][numc], 1);
 
-                //                markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][numc]);
-                // SET NOISE HERE
-                auto* alphaPrior
-                    = GaussianPrior1D::Create(joint_positions[j][numc], 1); // 0.05/180.0*M_PI);
-                markerBAProblem_RepError.AddResidualBlock(
-                    alphaPrior, nullptr, &joint_positions[j][numc]);
-            }
+            // markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][numc]);
+            // SET NOISE HERE
+            auto* alphaPrior
+                = GaussianPrior1D::Create(joint_positions[j][numc], 1); // 0.05/180.0*M_PI);
+            problem_full.AddResidualBlock(alphaPrior, nullptr, &joint_positions[j][numc]);
+#endif
         }
         {
             // one camera pose for each distinct lever config
@@ -286,12 +281,11 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 // std::cout << std::endl;
 
                 camPoses[dl] << 0, 0, 0, 1, 0, 0, 0;
-                markerBAProblem.AddParameterBlock(&camPoses[dl](0), 3);
-                markerBAProblem.AddParameterBlock(&camPoses[dl](3), 4, quaternion_parameterization);
+                problem_simple.AddParameterBlock(&camPoses[dl](0), 3);
+                problem_simple.AddParameterBlock(&camPoses[dl](3), 4, quaternion_parameterization);
 
-                markerBAProblem_RepError.AddParameterBlock(&camPoses[dl](0), 3);
-                markerBAProblem_RepError.AddParameterBlock(
-                    &camPoses[dl](3), 4, quaternion_parameterization2);
+                problem_full.AddParameterBlock(&camPoses[dl](0), 3);
+                problem_full.AddParameterBlock(&camPoses[dl](3), 4, quaternion_parameterization2);
             }
             else
             {
@@ -313,10 +307,11 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     // curImage=0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
+        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+            continue;
 
-        if (distinctFrequencies[indexToDistinctLever[i]]
-            < 2) // only accept lever groups with at least 2 calibration frames
+        // only accept lever groups with at least 2 calibration frames
+        if (distinctFrequencies[indexToDistinctLever[i]] < 2)
         {
             // std::cout << "Skipping" << std::endl;
             continue;
@@ -344,7 +339,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         const size_t dl = indexToDistinctLever[i];
         parameter_blocks.push_back(&camPoses[dl](0));
         parameter_blocks.push_back(&camPoses[dl](3));
-        markerBAProblem.AddResidualBlock(currentCostFunc,
+        problem_simple.AddResidualBlock(currentCostFunc,
             robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
             parameter_blocks);
 
@@ -369,9 +364,11 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         for (const auto& tagObs :
             ptuDetectionResults[ptuData.ptuImagePoses[i].cameraId].tagObservations)
         {
-            if (tagObs.imageId != detectedImageId) continue;
+            if (tagObs.imageId != detectedImageId)
+                continue;
             const auto tagIt = reconstructedTags.find(tagObs.tagId);
-            if (tagIt == reconstructedTags.end()) continue;
+            if (tagIt == reconstructedTags.end())
+                continue;
 
             const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
             for (size_t c = 0; c < 4; c++)
@@ -390,7 +387,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 auto* currentCostFunc2
                     = DynPTUPoseErrorTiltRepError::Create(tagObs.corners[c], tagCorners[c],
                         camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
-                markerBAProblem_RepError.AddResidualBlock(currentCostFunc2,
+                problem_full.AddResidualBlock(currentCostFunc2,
                     robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
                     parameter_blocks);
 
@@ -403,7 +400,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             }
         }
     }
-    std::cout << "done creating problem " << std::endl;
+    std::cout << "Done creating problems..." << std::endl;
 
     auto computeRMSE = [&repErrorFns]()
     {
@@ -419,34 +416,33 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     ceres::Solver::Options options;
     options.minimizer_progress_to_stdout = false;
-    options.max_num_iterations = 100; // maxNumIterations;
-    options.num_threads = 4; // ceresThreads;
-    options.num_linear_solver_threads = 4; // ceresThreads;
-// options.eta = 1e-2;
+    options.max_num_iterations = 100;
+    options.num_threads = 4;
+    options.num_linear_solver_threads = 4;
 
 #if 0
     for (int j=0;j<jointIndex;j++)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(0));
-        markerBAProblem.SetParameterBlockConstant(&joint_to_parent_pose(3));
+        problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(0));
+        problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(3));
     }
 
     ceres::Solver::Summary summary_pre;
-    Solve(options, &markerBAProblem, &summary_pre);
+    Solve(options, &problem_simple, &summary_pre);
     std::cout << "Rough Pre Solution: " << summary_pre.termination_type << std::endl;
 
     for (int j=0;j<jointIndex;j++)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
-        markerBAProblem.SetParameterBlockVariable(&joint_to_parent_pose(0));
-        markerBAProblem.SetParameterBlockVariable(&joint_to_parent_pose(3));
+        problem_simple.SetParameterBlockVariable(&joint_to_parent_pose(0));
+        problem_simple.SetParameterBlockVariable(&joint_to_parent_pose(3));
     }
 #endif
 
 
     ceres::Solver::Summary summary;
-    Solve(options, &markerBAProblem, &summary);
+    Solve(options, &problem_simple, &summary);
     std::cout << "Rough Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
@@ -454,50 +450,24 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
     ceres::Solver::Summary summary2;
-    Solve(options, &markerBAProblem_RepError, &summary2);
+    Solve(options, &problem_full, &summary2);
     std::cout << "Repr Error Solution: " << summary2.termination_type << std::endl;
-    // if (printSummary)
     std::cout << summary2.FullReport() << std::endl;
 
-    for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
-    {
-        std::cout << "SCALE " << j << " : " << jointData[j].ticks_to_rad << std::endl;
-    }
-
-    // std::vector<int> angleOffsets(jointIndex+1);
+    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 
-    // x value is always positive for jointPoses
-    // for (int j=0;j<jointIndex+1;j++)
-    // {
-    //     if (jointData[j].joint_to_parent_pose(0)<0)
-    //     {
-    //         Eigen::Matrix<double,7,1> preflip;
-    //         preflip << 0,0,0,0,1,0,0;
+    // Print some results
+    std::cout << "Resulting Parameters:" << std::endl;
 
-    //         Eigen::Matrix<double,7,1> flip;
-    //         flip << 0,0,0,0,0,0,1;
-    //         std::cout << "AFTER FLIP1: " << jointData[j].joint_to_parent_pose.transpose() <<
-    //         std::endl;
-    //         jointData[j].joint_to_parent_pose=poseAdd(flip, jointData[j].joint_to_parent_pose);
-    //         std::cout << "AFTER FLIP3: " << jointData[j].joint_to_parent_pose.transpose() <<
-    //         std::endl;
-    //     }
-    // }
-
-    // std::cout << "PanPose: " << poseInverse(panPoseInv).transpose() << std::endl;
-    // std::cout << "TiltPose: " << poseInverse(tiltPoseInv).transpose() << std::endl;
-
-    // std::cout << "Alphas: ";
-    // for (int i=0;i<joint_positions[jointIndex].size();i++)
-    //     std::cout << joint_positions[jointIndex][i] << ", ";
-    // std::cout << std::endl;
+    std::cout << "Tick2Rad for all joints: ";
+    for (size_t j = 0; j < jointIndex + 1; j++)
+        std::cout << jointData[j].ticks_to_rad << " ";
+    std::cout << std::endl;
 
     std::cout << "CamPoses: " << std::endl;
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
-
-    std::cout << "Reprojection Error RMS: " << computeRMSE() << std::endl;
 
 #define exportJson
 #ifdef exportJson
@@ -512,7 +482,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         cameraPose = camPoses[0];
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
-            if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
+            if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+                continue;
 
             const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -565,7 +536,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 #ifdef exportJson
             jsonStream << "}";
-            if (i < ptuData.ptuImagePoses.size() - 1) jsonStream << ",";
+            if (i < ptuData.ptuImagePoses.size() - 1)
+                jsonStream << ",";
             jsonStream << std::endl;
 #endif
         }
@@ -606,7 +578,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             //            tmpQ.w() = root(3);
             //            std::cout << "tmpQ.R = " << tmpQ.toRotationMatrix() << std::endl;
             jsonStream << "}";
-            if (j < jointIndex) jsonStream << ",";
+            if (j < jointIndex)
+                jsonStream << ",";
             jsonStream << std::endl;
 #endif
 
@@ -625,7 +598,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             numc = 0;
             for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
             {
-                if (ptuData.ptuImagePoses[i].cameraId != onlyCamId) continue;
+                if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
+                    continue;
 
                 const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -774,9 +748,11 @@ bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int i
     // find all matches between this image and the reconstructions
     for (const auto& tagObs : ptuDetectionResults[cameraId].tagObservations)
     {
-        if (tagObs.imageId != imageId) continue;
+        if (tagObs.imageId != imageId)
+            continue;
         const auto tagIt = reconstructedTags.find(tagObs.tagId);
-        if (tagIt == reconstructedTags.end()) continue;
+        if (tagIt == reconstructedTags.end())
+            continue;
 
         const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
 
@@ -786,7 +762,8 @@ bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int i
     std::cout << "   Reconstructing camera pose from " << observations2D.size()
               << " 2d/3d correspondences" << std::endl;
 
-    if (observations2D.empty()) return false;
+    if (observations2D.empty())
+        return false;
 
     Eigen::Matrix3d R;
     // solvePnPEigen(markerCorners3D, observations2D, K, distCoefficients, R, t);
