@@ -254,8 +254,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
             // markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][numc]);
             // SET NOISE HERE
+            const double noise_in_ticks
+                = ptuData.joints[j].angular_noise_std_dev / ptuData.joints[j].ticks_to_rad;
             auto* anglePrior
-                = GaussianPrior1D::Create(joint_positions[j][numc], 1); // 0.05/180.0*M_PI);
+                = GaussianPrior1D::Create(joint_positions[j][numc], noise_in_ticks);
             problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][numc]);
 #endif
         }
@@ -712,7 +714,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     for (size_t j = 0; j < jointData.size(); j++)
     {
         jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
-        jointData[j].ticks_to_rad = 0.051429 / 180.0 * M_PI;
+        jointData[j].ticks_to_rad = ptuData.joints[j].ticks_to_rad; // 0.051429 / 180.0 * M_PI;
     }
     for (size_t j = 0; j < ptuData.joints.size(); j++)
     {
