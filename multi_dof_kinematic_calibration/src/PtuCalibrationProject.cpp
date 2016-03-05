@@ -23,9 +23,9 @@
 
 namespace multi_dof_kinematic_calibration
 {
-struct DynPTUPoseErrorTiltRepError
+struct KinematicChainRepError
 {
-    DynPTUPoseErrorTiltRepError(const Eigen::Vector2d& observation, const Eigen::Vector3d& point_3d,
+    KinematicChainRepError(const Eigen::Vector2d& observation, const Eigen::Vector3d& point_3d,
         const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K, size_t numJoints)
         : repError(observation, d, K)
         , point_3d(point_3d)
@@ -62,8 +62,8 @@ struct DynPTUPoseErrorTiltRepError
         const Eigen::Vector3d& point_3d, const Eigen::Matrix<double, 5, 1>& d,
         const Eigen::Matrix3d& K, size_t numJoints)
     {
-        auto cost_function = new ceres::DynamicAutoDiffCostFunction<DynPTUPoseErrorTiltRepError, 4>(
-            new DynPTUPoseErrorTiltRepError(observation, point_3d, d, K, numJoints));
+        auto cost_function = new ceres::DynamicAutoDiffCostFunction<KinematicChainRepError, 4>(
+            new KinematicChainRepError(observation, point_3d, d, K, numJoints));
         for (size_t i = 0; i < numJoints; i++)
         {
             cost_function->AddParameterBlock(3);
@@ -82,9 +82,9 @@ struct DynPTUPoseErrorTiltRepError
     size_t numJoints;
 };
 
-struct DynPTUPoseErrorTilt
+struct KinematicChainPoseError
 {
-    DynPTUPoseErrorTilt(const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
+    KinematicChainPoseError(const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
         : expected_world_to_cam(expected_world_to_cam)
         , numJoints(numJoints)
     {
@@ -119,8 +119,8 @@ struct DynPTUPoseErrorTilt
     static ceres::CostFunction* Create(
         const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
     {
-        auto cost_function = new ceres::DynamicAutoDiffCostFunction<DynPTUPoseErrorTilt, 4>(
-            new DynPTUPoseErrorTilt(expected_world_to_cam, numJoints));
+        auto cost_function = new ceres::DynamicAutoDiffCostFunction<KinematicChainPoseError, 4>(
+            new KinematicChainPoseError(expected_world_to_cam, numJoints));
         for (size_t i = 0; i < numJoints; i++)
         {
             cost_function->AddParameterBlock(3);
@@ -142,7 +142,7 @@ struct DynPTUPoseErrorTilt
 //-----------------------------------------------------------------------------
 void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 {
-	const std::set<int> onlyCamIds = {1};
+    const std::set<int> onlyCamIds = { 1 };
 
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -209,8 +209,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
-			continue;
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+            continue;
 
         const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -314,8 +314,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
         const JointImageInfo& curJointData = ptuData.ptuImagePoses[i];
-		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
-			continue;
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+            continue;
 
         // only accept lever groups with at least 2 calibration frames
         if (distinctFrequencies[indexToDistinctLever[i]] < 2)
@@ -333,7 +333,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
         constexpr bool robustify = false;
-        auto simpleCostFn = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
+        auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, jointIndex + 1);
         std::vector<double*> parameter_blocks;
         for (size_t j = 0; j < jointIndex + 1; j++)
         {
@@ -389,9 +389,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 // }
 
 
-                auto fullCostFn
-                    = DynPTUPoseErrorTiltRepError::Create(tagObs.corners[c], tagCorners[c],
-                        camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
+                auto fullCostFn = KinematicChainRepError::Create(tagObs.corners[c], tagCorners[c],
+                    camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
                 problem_full.AddResidualBlock(fullCostFn,
                     robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
                     parameter_blocks);
@@ -488,8 +487,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     cameraPose = camPoses[0];
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
-			continue;
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+            continue;
 
         const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -595,8 +594,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         numc = 0;
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
-			if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
-				continue;
+            if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+                continue;
 
             const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
