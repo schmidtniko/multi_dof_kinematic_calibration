@@ -142,7 +142,7 @@ struct DynPTUPoseErrorTilt
 //-----------------------------------------------------------------------------
 void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 {
-    const int onlyCamId = 1;
+	const std::set<int> onlyCamIds = {1};
 
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -209,8 +209,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
-            continue;
+		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+			continue;
 
         const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -269,8 +269,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         }
         {
             // one camera pose for each distinct lever config
-            const std::vector<int> leverConfig(
-                jointConfig.begin() + jointIndex + 1, jointConfig.end());
+            std::vector<int> leverConfig(jointConfig.begin() + jointIndex + 1, jointConfig.end());
+            leverConfig.push_back(ptuData.ptuImagePoses[i].cameraId);
 
             const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
@@ -314,8 +314,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
         const JointImageInfo& curJointData = ptuData.ptuImagePoses[i];
-        if (curJointData.cameraId != onlyCamId)
-            continue;
+		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+			continue;
 
         // only accept lever groups with at least 2 calibration frames
         if (distinctFrequencies[indexToDistinctLever[i]] < 2)
@@ -488,8 +488,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     cameraPose = camPoses[0];
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
-            continue;
+		if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+			continue;
 
         const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
@@ -595,8 +595,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         numc = 0;
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
-            if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
-                continue;
+			if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+				continue;
 
             const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
