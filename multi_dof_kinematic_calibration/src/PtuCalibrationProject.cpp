@@ -195,7 +195,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     using JointState = int;
     using LeverState = std::vector<int>;
-    std::vector<std::map<JointState, size_t> > distinctJointPositions(ptuData.jointNames.size());
+    std::vector<std::map<JointState, size_t> > distinctJointPositions(ptuData.joints.size());
     std::map<LeverState, DistinctLeverIndex> distinctLeverPositions;
 
     std::map<size_t, size_t> distinctFrequencies;
@@ -203,7 +203,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     std::map<DistinctLeverIndex, Eigen::Matrix<double, 7, 1> > camPoses;
 
-    std::vector<std::map<size_t, double> > joint_positions(ptuData.jointNames.size());
+    std::vector<std::map<size_t, double> > joint_positions(ptuData.joints.size());
 
     size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
@@ -466,7 +466,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
-    if (jointIndex + 1 < ptuData.jointNames.size())
+    if (jointIndex + 1 < ptuData.joints.size())
         return;
 
 #define exportJson
@@ -708,15 +708,15 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         reconstructedPoses[i] = dbg.cam;
     }
 
-    jointData.resize(ptuData.jointNames.size());
+    jointData.resize(ptuData.joints.size());
     for (size_t j = 0; j < jointData.size(); j++)
     {
         jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
         jointData[j].ticks_to_rad = 0.051429 / 180.0 * M_PI;
     }
-    for (size_t j = 0; j < ptuData.jointNames.size(); j++)
+    for (size_t j = 0; j < ptuData.joints.size(); j++)
     {
-        std::cout << "Optimizing joint: " << ptuData.jointNames[j] << std::endl;
+        std::cout << "Optimizing joint: " << ptuData.joints[j].name << std::endl;
         optimizeJoint(j);
         // continue;
         // return;

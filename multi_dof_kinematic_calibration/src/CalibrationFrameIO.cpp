@@ -16,10 +16,14 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
     pt::ptree rootNode;
     pt::read_json(filePath, rootNode);
 
-    for (const auto& name : rootNode.get_child("joint_names"))
-    {
-        jointNames.push_back(name.second.get_value<std::string>());
-    }
+	for (const auto& jointNode : rootNode.get_child("kinematic_chain"))
+	{
+		JointInfo inf;
+		inf.name=jointNode.second.get<std::string>("name");
+		inf.ticks_to_rad=jointNode.second.get<double>("ticks_to_rad");
+		inf.angular_noise_std_dev=jointNode.second.get<double>("angular_noise_std_dev");
+		joints.emplace_back(std::move(inf));
+	}
 
     for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
     {
@@ -27,9 +31,9 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
         ptuInfo.imagePath = ptuPoseNode.second.get<std::string>("image_path");
         ptuInfo.cameraId = ptuPoseNode.second.get<int>("camera_model_id");
 
-        for (const auto& jointName : jointNames)
+        for (const JointInfo& jointInfo : joints)
         {
-            pt::ptree jointPt = ptuPoseNode.second.get_child(jointName);
+            pt::ptree jointPt = ptuPoseNode.second.get_child(jointInfo.name);
             const int ticks = jointPt.get<int>("ticks");
             ptuInfo.jointConfiguration.push_back(ticks);
         }

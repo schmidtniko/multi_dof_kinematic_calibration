@@ -20,6 +20,12 @@
 
 namespace multi_dof_kinematic_calibration
 {
+struct JointInfo
+{
+	std::string name;
+	double ticks_to_rad;
+	double angular_noise_std_dev;
+};
 struct JointImageInfo
 {
     int cameraId = -1;
@@ -36,7 +42,8 @@ struct PtuImageCapture
     // contains for every camera the corresponding camera model
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
     std::vector<JointImageInfo> ptuImagePoses;
-    std::vector<std::string> jointNames;
+    //std::vector<std::string> jointNames;
+	std::vector<JointInfo> joints;
 };
 }
 
