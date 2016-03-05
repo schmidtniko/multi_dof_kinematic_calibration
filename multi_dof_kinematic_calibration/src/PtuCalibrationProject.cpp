@@ -211,7 +211,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         if (ptuData.ptuImagePoses[i].cameraId != onlyCamId)
             continue;
 
-        const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
+        const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
 
 
         for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
@@ -246,19 +246,24 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             distinctJointPositions[j].emplace(jointConfig[j], numc);
 
             //
-            joint_positions[j][numc] = jointConfig[j]; //*0.051429/180.0*M_PI*0.8;//*0.00089779559;
+            joint_positions[j][numc] = jointConfig[j];
             problem_simple.AddParameterBlock(&joint_positions[j][numc], 1);
             problem_simple.SetParameterBlockConstant(&joint_positions[j][numc]);
 
             problem_full.AddParameterBlock(&joint_positions[j][numc], 1);
 
-            // markerBAProblem_RepError.SetParameterBlockConstant(&joint_positions[j][numc]);
-            // SET NOISE HERE
+            // Set angular noise
             const double noise_in_ticks
                 = ptuData.joints[j].angular_noise_std_dev / ptuData.joints[j].ticks_to_rad;
-            auto* anglePrior
-                = GaussianPrior1D::Create(joint_positions[j][numc], noise_in_ticks);
-            problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][numc]);
+            if (noise_in_ticks < 1e-8)
+            {
+                problem_full.SetParameterBlockConstant(&joint_positions[j][numc]);
+            }
+            else
+            {
+                auto anglePrior = GaussianPrior1D::Create(joint_positions[j][numc], noise_in_ticks);
+                problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][numc]);
+            }
 #endif
         }
         {
@@ -714,7 +719,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     for (size_t j = 0; j < jointData.size(); j++)
     {
         jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
-        jointData[j].ticks_to_rad = ptuData.joints[j].ticks_to_rad; // 0.051429 / 180.0 * M_PI;
+        jointData[j].ticks_to_rad = ptuData.joints[j].ticks_to_rad;
     }
     for (size_t j = 0; j < ptuData.joints.size(); j++)
     {
