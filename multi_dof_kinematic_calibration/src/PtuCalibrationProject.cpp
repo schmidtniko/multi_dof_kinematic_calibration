@@ -333,7 +333,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
         constexpr bool robustify = false;
-        auto* simpleCostFn = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
+        auto simpleCostFn = DynPTUPoseErrorTilt::Create(world_to_cam, jointIndex + 1);
         std::vector<double*> parameter_blocks;
         for (size_t j = 0; j < jointIndex + 1; j++)
         {
