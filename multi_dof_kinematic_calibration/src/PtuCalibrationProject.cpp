@@ -159,11 +159,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     ceres::Problem problem_full;
 
     const std::vector<int> yzconstant_params = { 1, 2 };
-    auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
-    auto yzconstant_parametrization2 = new ceres::SubsetParameterization(3, yzconstant_params);
+    const auto yzconstant_parametrization = new ceres::SubsetParameterization(3, yzconstant_params);
+    const auto yzconstant_parametrization2
+        = new ceres::SubsetParameterization(3, yzconstant_params);
 
-    auto quaternion_parameterization = new ceres::QuaternionParameterization;
-    auto quaternion_parameterization2 = new ceres::QuaternionParameterization;
+    const auto quaternion_parameterization = new ceres::QuaternionParameterization;
+    const auto quaternion_parameterization2 = new ceres::QuaternionParameterization;
 
     for (size_t j = 0; j < jointIndex + 1; j++)
     {
@@ -271,7 +272,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             const std::vector<int> leverConfig(
                 jointConfig.begin() + jointIndex + 1, jointConfig.end());
 
-            auto it = distinctLeverPositions.find(leverConfig);
+            const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
             {
                 const size_t dl = distinctLeverPositions.size();
@@ -388,7 +389,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
                 // }
 
 
-                auto* fullCostFn
+                auto fullCostFn
                     = DynPTUPoseErrorTiltRepError::Create(tagObs.corners[c], tagCorners[c],
                         camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
                 problem_full.AddResidualBlock(fullCostFn,
@@ -498,8 +499,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         for (size_t j = 0; j < jointIndex + 1; j++)
         {
             root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
-            // std::cout << poseInverse(jointData[j].joint_to_parent_pose).transpose() << " !! "
-            // << std::endl;
 
             const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
             // double t = joint_positions[j][indexToDistinctJoint[i][j]];
