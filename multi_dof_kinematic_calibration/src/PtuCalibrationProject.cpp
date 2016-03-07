@@ -633,28 +633,27 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
         j++;
     }
-	root.add_child("kinematic_chain", kinematicChainPt);
-	pt::ptree cameraPt;
-	for (const auto& id_to_cam_model : ptuData.cameraModelById)
-	{
-		const Eigen::Vector3d translation = cameraPose.head(3);
+    root.add_child("kinematic_chain", kinematicChainPt);
+    pt::ptree cameraPt;
+    for (const auto& id_to_cam_model : ptuData.cameraModelById)
+    {
+        const Eigen::Vector3d translation = cameraPose.head(3);
         const Eigen::Vector4d rotation = cameraPose.segment<4>(3);
-		
-		const pt::ptree translationPt
+
+        const pt::ptree translationPt
             = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
         const pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
-		
-		pt::ptree camDataPt;
+
+        pt::ptree camDataPt;
         camDataPt.add_child("translation", translationPt);
         camDataPt.add_child("rotation", rotationPt);
         camDataPt.put("id", id_to_cam_model.first);
 
         cameraPt.push_back(std::make_pair("", camDataPt));
-	}
-	root.add_child("camera_poses", cameraPt);
-	
-    
-	
+    }
+    root.add_child("camera_poses", cameraPt);
+
+
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
