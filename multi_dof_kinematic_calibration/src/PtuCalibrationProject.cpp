@@ -84,7 +84,8 @@ struct KinematicChainRepError
 
 struct KinematicChainPoseError
 {
-    KinematicChainPoseError(const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
+    KinematicChainPoseError(
+        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
         : expected_world_to_cam(expected_world_to_cam)
         , numJoints(numJoints)
     {
@@ -614,28 +615,46 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
     pt::ptree root;
 
     pt::ptree kinematicChainPt;
-    size_t counter = 1;
+    size_t j = 0;
     for (const auto& joint : jointData)
     {
         const Eigen::Vector3d translation = joint.joint_to_parent_pose.head(3);
         const Eigen::Vector4d rotation = joint.joint_to_parent_pose.segment<4>(3);
-        pt::ptree translationPt = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
-        pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
+        const pt::ptree translationPt
+            = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
+        const pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
 
         pt::ptree jointDataPt;
         jointDataPt.add_child("translation", translationPt);
         jointDataPt.add_child("rotation", rotationPt);
         jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
-        jointDataPt.put("name", "joint_" + std::to_string(counter));
-
+        jointDataPt.put("name", ptuData.joints[j].name);
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
-        counter++;
+        j++;
     }
+	root.add_child("kinematic_chain", kinematicChainPt);
+	pt::ptree cameraPt;
+	for (const auto& id_to_cam_model : ptuData.cameraModelById)
+	{
+		const Eigen::Vector3d translation = cameraPose.head(3);
+        const Eigen::Vector4d rotation = cameraPose.segment<4>(3);
+		
+		const pt::ptree translationPt
+            = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
+        const pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
+		
+		pt::ptree camDataPt;
+        camDataPt.add_child("translation", translationPt);
+        camDataPt.add_child("rotation", rotationPt);
+        camDataPt.put("id", id_to_cam_model.first);
 
-    // add camera
-
-    root.add_child("kinematic_chain", kinematicChainPt);
+        cameraPt.push_back(std::make_pair("", camDataPt));
+	}
+	root.add_child("camera_poses", cameraPt);
+	
+    
+	
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------

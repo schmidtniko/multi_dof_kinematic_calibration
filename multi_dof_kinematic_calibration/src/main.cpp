@@ -41,6 +41,9 @@ int main(int argc, char* argv[])
 
         PtuCalibrationProject proj;
         proj.processFolder(project_path.string());
+
+        const auto export_path = (project_path / "calibration_result.json").string();
+        proj.exportCalibrationResults(export_path);
     }
     catch (const std::exception& ex)
     {
