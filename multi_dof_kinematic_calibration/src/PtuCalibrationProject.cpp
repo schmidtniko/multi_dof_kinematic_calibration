@@ -353,25 +353,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
             parameter_blocks);
 
-
-        int detectedImageId = -1;
-        for (int j = 0; j < (int)ptuDetectionResults[curJointData.camera_id].images.size(); j++)
-        {
-            if (strstr(curJointData.image_path.c_str(),
-                    ptuDetectionResults[curJointData.camera_id].images[j].filename.c_str()))
-            {
-                detectedImageId = j;
-                break;
-            }
-        }
-
         const visual_marker_mapping::CameraModel& camModel
             = ptuData.cameraModelById[curJointData.camera_id];
 
-        for (const auto& tagObs : ptuDetectionResults[curJointData.camera_id].tagObservations)
+		const auto& marker_observations = curJointData.marker_observations;
+        for (const auto& tagObs : marker_observations)
         {
-            if (tagObs.imageId != detectedImageId)
-                continue;
             const auto tagIt = reconstructedTags.find(tagObs.tagId);
             if (tagIt == reconstructedTags.end())
                 continue;
@@ -624,30 +611,14 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         std::cout << "Read PTU Data!" << std::endl;
     }
 
-    {
-        ptuDetectionResults[0]
-            = visual_marker_mapping::readDetectionResult(folder + "/cam0/marker_detections.json");
-        std::cout << "Read PTU Image Detections!" << std::endl;
-        ptuDetectionResults[1]
-            = visual_marker_mapping::readDetectionResult(folder + "/cam1/marker_detections.json");
-        std::cout << "Read PTU Image Detections!" << std::endl;
-    }
-
-    //    std::map<int, visual_marker_mapping::CameraModel> cameraModelsById;
-    //    {
-    //        boost::property_tree::ptree cameraTree;
-    //        boost::property_tree::json_parser::read_json(
-    //            folder + "/cam0/camera_intrinsics.json", cameraTree);
-    //        cameraModelsById.emplace(0,
-    //        visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
-
-    //        boost::property_tree::ptree cameraTree2;
-    //        boost::property_tree::json_parser::read_json(
-    //            folder + "/cam1/camera_intrinsics.json", cameraTree2);
-    //        cameraModelsById.emplace(1,
-    //        visual_marker_mapping::propertyTreeToCameraModel(cameraTree2));
-    //    }
-    //    ptuData.cameraModelById = cameraModelsById;
+//    {
+//        ptuDetectionResults[0]
+//            = visual_marker_mapping::readDetectionResult(folder + "/cam0/marker_detections.json");
+//        std::cout << "Read PTU Image Detections!" << std::endl;
+//        ptuDetectionResults[1]
+//            = visual_marker_mapping::readDetectionResult(folder + "/cam1/marker_detections.json");
+//        std::cout << "Read PTU Image Detections!" << std::endl;
+//    }
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
@@ -657,22 +628,9 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         const visual_marker_mapping::CameraModel& camModel
             = ptuData.cameraModelById[curJointInfo.camera_id];
 
-        int detectedImageId = -1;
-        for (size_t j = 0; j < ptuDetectionResults[curJointInfo.camera_id].images.size(); j++)
-        {
-            if (strstr(curJointInfo.image_path.c_str(),
-                    ptuDetectionResults[curJointInfo.camera_id].images[j].filename.c_str()))
-            {
-                detectedImageId = static_cast<int>(j);
-                break;
-            }
-        }
-        assert(
-            detectedImageId >= 0); // if this fails, there is no detection for a certain ptu image
         Eigen::Quaterniond q;
         Eigen::Vector3d t;
-        computeRelativeCameraPoseFromImg(curJointInfo.camera_id, detectedImageId, camModel.getK(),
-            camModel.distortionCoefficients, q, t);
+        computeRelativeCameraPoseFromImg(i, camModel.getK(), camModel.distortionCoefficients, q, t);
 
         DebugVis dbg;
         dbg.cam.setQuat(q);
@@ -698,17 +656,17 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     }
 }
 //-----------------------------------------------------------------------------
-bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(int cameraId, int imageId,
+bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
     const Eigen::Matrix3d& K, const Eigen::Matrix<double, 5, 1>& distCoefficients,
     Eigen::Quaterniond& q, Eigen::Vector3d& t)
 {
     std::vector<Eigen::Vector3d> markerCorners3D;
     std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > observations2D;
     // find all matches between this image and the reconstructions
-    for (const auto& tagObs : ptuDetectionResults[cameraId].tagObservations)
+    const auto& marker_observations
+        = ptuData.ptuImagePoses[calibration_frame_id].marker_observations;
+    for (const auto& tagObs : marker_observations)
     {
-        if (tagObs.imageId != imageId)
-            continue;
         const auto tagIt = reconstructedTags.find(tagObs.tagId);
         if (tagIt == reconstructedTags.end())
             continue;
