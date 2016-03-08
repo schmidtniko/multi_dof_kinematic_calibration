@@ -276,23 +276,25 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
             {
-                const size_t dl = distinctLeverPositions.size();
-                indexToDistinctLever[i] = dl;
-                distinctLeverPositions.emplace(leverConfig, dl);
+                const size_t distinct_lever_index = distinctLeverPositions.size();
+                indexToDistinctLever[i] = distinct_lever_index;
+                distinctLeverPositions.emplace(leverConfig, distinct_lever_index);
 
-                distinctFrequencies[dl] = 1;
+                distinctFrequencies[distinct_lever_index] = 1;
 
                 // std::cout << "New Config: ";
                 // for (auto i : leverConfig)
                 //     std::cout << i << " , ";
                 // std::cout << std::endl;
 
-                camPoses[dl] << 0, 0, 0, 1, 0, 0, 0;
-                problem_simple.AddParameterBlock(&camPoses[dl](0), 3);
-                problem_simple.AddParameterBlock(&camPoses[dl](3), 4, quaternion_parameterization);
+                camPoses[distinct_lever_index] << 0, 0, 0, 1, 0, 0, 0;
+                problem_simple.AddParameterBlock(&camPoses[distinct_lever_index](0), 3);
+                problem_simple.AddParameterBlock(
+                    &camPoses[distinct_lever_index](3), 4, quaternion_parameterization);
 
-                problem_full.AddParameterBlock(&camPoses[dl](0), 3);
-                problem_full.AddParameterBlock(&camPoses[dl](3), 4, quaternion_parameterization2);
+                problem_full.AddParameterBlock(&camPoses[distinct_lever_index](0), 3);
+                problem_full.AddParameterBlock(
+                    &camPoses[distinct_lever_index](3), 4, quaternion_parameterization2);
             }
             else
             {
@@ -477,7 +479,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     if (jointIndex + 1 < ptuData.joints.size())
         return;
 
-#define exportJson
+//#define exportJson
 #ifdef exportJson
     std::ofstream jsonStream;
     jsonStream.open("results.json");
@@ -559,8 +561,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     {
         root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
 
-        jsonStream << "{" << std::endl;
-
         auto invRet = poseInverse(root);
         DebugVis dbg;
         dbg.cam.q = invRet.segment<4>(3);
@@ -569,6 +569,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 // print for evaluation
 #ifdef exportJson
+		jsonStream << "{" << std::endl;
         jsonStream << "\"joint\": " << j << "," << std::endl;
         jsonStream << "\"t\":[" << root(0) << ", " << root(1) << ", " << root(2) << "],"
                    << std::endl;
