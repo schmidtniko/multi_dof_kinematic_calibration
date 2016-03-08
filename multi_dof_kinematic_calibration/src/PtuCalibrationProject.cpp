@@ -210,10 +210,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     size_t numc = 0;
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
             continue;
 
-        const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
+        const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].joint_config;
 
 
         for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
@@ -271,7 +271,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         {
             // one camera pose for each distinct lever config
             std::vector<int> leverConfig(jointConfig.begin() + jointIndex + 1, jointConfig.end());
-            leverConfig.push_back(ptuData.ptuImagePoses[i].cameraId);
+            leverConfig.push_back(ptuData.ptuImagePoses[i].camera_id);
 
             const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
@@ -317,7 +317,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
         const JointImageInfo& curJointData = ptuData.ptuImagePoses[i];
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
             continue;
 
         // only accept lever groups with at least 2 calibration frames
@@ -355,10 +355,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
         int detectedImageId = -1;
-        for (int j = 0; j < (int)ptuDetectionResults[curJointData.cameraId].images.size(); j++)
+        for (int j = 0; j < (int)ptuDetectionResults[curJointData.camera_id].images.size(); j++)
         {
-            if (strstr(curJointData.imagePath.c_str(),
-                    ptuDetectionResults[curJointData.cameraId].images[j].filename.c_str()))
+            if (strstr(curJointData.image_path.c_str(),
+                    ptuDetectionResults[curJointData.camera_id].images[j].filename.c_str()))
             {
                 detectedImageId = j;
                 break;
@@ -366,9 +366,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         }
 
         const visual_marker_mapping::CameraModel& camModel
-            = ptuData.cameraModelById[curJointData.cameraId];
+            = ptuData.cameraModelById[curJointData.camera_id];
 
-        for (const auto& tagObs : ptuDetectionResults[curJointData.cameraId].tagObservations)
+        for (const auto& tagObs : ptuDetectionResults[curJointData.camera_id].tagObservations)
         {
             if (tagObs.imageId != detectedImageId)
                 continue;
@@ -482,10 +482,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     cameraPose = camPoses[0];
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
             continue;
 
-        const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
+        const auto& jointConfig = ptuData.ptuImagePoses[i].joint_config;
 
         Eigen::Matrix<double, 7, 1> root;
         root << 0, 0, 0, 1, 0, 0, 0;
@@ -545,10 +545,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         numc = 0;
         for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
         {
-            if (!onlyCamIds.count(ptuData.ptuImagePoses[i].cameraId))
+            if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
                 continue;
 
-            const auto& jointConfig = ptuData.ptuImagePoses[i].jointConfiguration;
+            const auto& jointConfig = ptuData.ptuImagePoses[i].joint_config;
 
             for (size_t j = 0; j < jointIndex + 1; j++)
                 joint_positions[j][numc] = jointConfig[j];
@@ -633,19 +633,21 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         std::cout << "Read PTU Image Detections!" << std::endl;
     }
 
-    std::map<int, visual_marker_mapping::CameraModel> cameraModelsById;
-    {
-        boost::property_tree::ptree cameraTree;
-        boost::property_tree::json_parser::read_json(
-            folder + "/cam0/camera_intrinsics.json", cameraTree);
-        cameraModelsById.emplace(0, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
+    //    std::map<int, visual_marker_mapping::CameraModel> cameraModelsById;
+    //    {
+    //        boost::property_tree::ptree cameraTree;
+    //        boost::property_tree::json_parser::read_json(
+    //            folder + "/cam0/camera_intrinsics.json", cameraTree);
+    //        cameraModelsById.emplace(0,
+    //        visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
 
-        boost::property_tree::ptree cameraTree2;
-        boost::property_tree::json_parser::read_json(
-            folder + "/cam1/camera_intrinsics.json", cameraTree2);
-        cameraModelsById.emplace(1, visual_marker_mapping::propertyTreeToCameraModel(cameraTree2));
-    }
-    ptuData.cameraModelById = cameraModelsById;
+    //        boost::property_tree::ptree cameraTree2;
+    //        boost::property_tree::json_parser::read_json(
+    //            folder + "/cam1/camera_intrinsics.json", cameraTree2);
+    //        cameraModelsById.emplace(1,
+    //        visual_marker_mapping::propertyTreeToCameraModel(cameraTree2));
+    //    }
+    //    ptuData.cameraModelById = cameraModelsById;
 
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
@@ -653,13 +655,13 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         //        const visual_marker_mapping::CameraModel& camModel
         //            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
         const visual_marker_mapping::CameraModel& camModel
-            = cameraModelsById[curJointInfo.cameraId];
+            = ptuData.cameraModelById[curJointInfo.camera_id];
 
         int detectedImageId = -1;
-        for (size_t j = 0; j < ptuDetectionResults[curJointInfo.cameraId].images.size(); j++)
+        for (size_t j = 0; j < ptuDetectionResults[curJointInfo.camera_id].images.size(); j++)
         {
-            if (strstr(curJointInfo.imagePath.c_str(),
-                    ptuDetectionResults[curJointInfo.cameraId].images[j].filename.c_str()))
+            if (strstr(curJointInfo.image_path.c_str(),
+                    ptuDetectionResults[curJointInfo.camera_id].images[j].filename.c_str()))
             {
                 detectedImageId = static_cast<int>(j);
                 break;
@@ -669,7 +671,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
             detectedImageId >= 0); // if this fails, there is no detection for a certain ptu image
         Eigen::Quaterniond q;
         Eigen::Vector3d t;
-        computeRelativeCameraPoseFromImg(curJointInfo.cameraId, detectedImageId, camModel.getK(),
+        computeRelativeCameraPoseFromImg(curJointInfo.camera_id, detectedImageId, camModel.getK(),
             camModel.distortionCoefficients, q, t);
 
         DebugVis dbg;

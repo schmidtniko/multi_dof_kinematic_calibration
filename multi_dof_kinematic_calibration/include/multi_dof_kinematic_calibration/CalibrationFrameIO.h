@@ -23,14 +23,14 @@ namespace multi_dof_kinematic_calibration
 struct JointInfo
 {
 	std::string name;
-	double ticks_to_rad;
+	double ticks_to_rad; // ticks * ticks_to_rad = rad
 	double angular_noise_std_dev;
 };
 struct JointImageInfo
 {
-    int cameraId = -1;
-    std::string imagePath = "";
-    std::vector<int> jointConfiguration; // jointName --> {ticks}
+    int camera_id = -1;
+    std::string image_path;
+    std::vector<int> joint_config; // jointName --> {ticks}
 };
 
 
