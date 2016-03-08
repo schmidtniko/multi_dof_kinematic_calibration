@@ -26,7 +26,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
         joints.emplace_back(std::move(inf));
     }
 
-	std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
+    std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
     for (const auto& cameraNode : rootNode.get_child("cameras"))
     {
         const int camera_id = cameraNode.second.get<int>("camera_id");
@@ -61,10 +61,10 @@ CalibrationData::CalibrationData(const std::string& filePath)
     for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
     {
         CalibrationFrame ptuInfo;
-		boost::filesystem::path image_path=ptuPoseNode.second.get<std::string>("image_path");
-		if (image_path.is_relative())
+        boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>("image_path");
+        if (image_path.is_relative())
             image_path = boost::filesystem::path(filePath).parent_path() / image_path;
-		
+
         ptuInfo.image_path = image_path.string();
         ptuInfo.camera_id = ptuPoseNode.second.get<int>("camera_id");
 
@@ -74,28 +74,29 @@ CalibrationData::CalibrationData(const std::string& filePath)
             const int ticks = jointPt.get<int>("ticks");
             ptuInfo.joint_config.push_back(ticks);
         }
-		
-		
-		// find marker observations for this calibration frame
-		int detectedImageId = -1;
+
+
+        // find marker observations for this calibration frame
+        int detectedImageId = -1;
         for (size_t j = 0; j < detectionResultsByCamId[ptuInfo.camera_id].images.size(); j++)
         {
-			// this is a hack and should really be ==...
-            if (image_path.filename()==detectionResultsByCamId[ptuInfo.camera_id].images[j].filename)
+            // this is a hack and should really be ==...
+            if (image_path.filename()
+                == detectionResultsByCamId[ptuInfo.camera_id].images[j].filename)
             {
                 detectedImageId = static_cast<int>(j);
                 break;
             }
         }
-		for (const auto& tagObs : detectionResultsByCamId[ptuInfo.camera_id].tagObservations)
-		{
-			if (tagObs.imageId!=detectedImageId)
-				continue;
-			ptuInfo.marker_observations.push_back(tagObs);
-			ptuInfo.marker_observations.back().imageId=-1;
-		}
-		
-		
+        for (const auto& tagObs : detectionResultsByCamId[ptuInfo.camera_id].tagObservations)
+        {
+            if (tagObs.imageId != detectedImageId)
+                continue;
+            ptuInfo.marker_observations.push_back(tagObs);
+            ptuInfo.marker_observations.back().imageId = -1;
+        }
+
+
         calib_frames.emplace_back(std::move(ptuInfo));
     }
 }

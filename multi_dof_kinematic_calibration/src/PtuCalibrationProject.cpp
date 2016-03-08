@@ -356,7 +356,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         const visual_marker_mapping::CameraModel& camModel
             = calib_data.cameraModelById[curJointData.camera_id];
 
-		const auto& marker_observations = curJointData.marker_observations;
+        const auto& marker_observations = curJointData.marker_observations;
         for (const auto& tagObs : marker_observations)
         {
             const auto tagIt = reconstructedTags.find(tagObs.tagId);
