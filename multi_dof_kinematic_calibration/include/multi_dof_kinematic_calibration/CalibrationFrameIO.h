@@ -16,7 +16,7 @@ struct JointInfo
     double ticks_to_rad; // ticks * ticks_to_rad = rad
     double angular_noise_std_dev;
 };
-struct JointImageInfo
+struct CalibrationFrame
 {
     int camera_id = -1;
     std::string image_path;
@@ -26,14 +26,14 @@ struct JointImageInfo
 };
 
 
-struct PtuImageCapture
+struct CalibrationData
 {
-    PtuImageCapture() {}
-    PtuImageCapture(const std::string& filePath);
+    CalibrationData() {}
+    CalibrationData(const std::string& filePath);
 
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
 
-    std::vector<JointImageInfo> ptuImagePoses;
+    std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
 };
 }

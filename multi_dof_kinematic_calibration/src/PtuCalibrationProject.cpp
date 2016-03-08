@@ -192,12 +192,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     using DistinctJointIndex = std::vector<size_t>;
     using DistinctLeverIndex = size_t;
-    std::vector<DistinctJointIndex> indexToDistinctJoint(ptuData.ptuImagePoses.size());
-    std::vector<DistinctLeverIndex> indexToDistinctLever(ptuData.ptuImagePoses.size());
+    std::vector<DistinctJointIndex> indexToDistinctJoint(calib_data.calib_frames.size());
+    std::vector<DistinctLeverIndex> indexToDistinctLever(calib_data.calib_frames.size());
 
     using JointState = int;
     using LeverState = std::vector<int>;
-    std::vector<std::map<JointState, size_t> > distinctJointPositions(ptuData.joints.size());
+    std::vector<std::map<JointState, size_t> > distinctJointPositions(calib_data.joints.size());
     std::map<LeverState, DistinctLeverIndex> distinctLeverPositions;
 
     std::map<size_t, size_t> distinctFrequencies;
@@ -205,15 +205,15 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
     std::map<DistinctLeverIndex, Eigen::Matrix<double, 7, 1> > camPoses;
 
-    std::vector<std::map<size_t, double> > joint_positions(ptuData.joints.size());
+    std::vector<std::map<size_t, double> > joint_positions(calib_data.joints.size());
 
     size_t numc = 0;
-    for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
+    for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
+        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
             continue;
 
-        const std::vector<int>& jointConfig = ptuData.ptuImagePoses[i].joint_config;
+        const std::vector<int>& jointConfig = calib_data.calib_frames[i].joint_config;
 
 
         for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
@@ -256,7 +256,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
             // Set angular noise
             const double noise_in_ticks
-                = ptuData.joints[j].angular_noise_std_dev / ptuData.joints[j].ticks_to_rad;
+                = calib_data.joints[j].angular_noise_std_dev / calib_data.joints[j].ticks_to_rad;
             if (noise_in_ticks < 1e-8)
             {
                 problem_full.SetParameterBlockConstant(&joint_positions[j][numc]);
@@ -271,7 +271,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         {
             // one camera pose for each distinct lever config
             std::vector<int> leverConfig(jointConfig.begin() + jointIndex + 1, jointConfig.end());
-            leverConfig.push_back(ptuData.ptuImagePoses[i].camera_id);
+            leverConfig.push_back(calib_data.calib_frames[i].camera_id);
 
             const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
@@ -314,10 +314,10 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
 
 
     // curImage=0;
-    for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
+    for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        const JointImageInfo& curJointData = ptuData.ptuImagePoses[i];
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
+        const CalibrationFrame& curJointData = calib_data.calib_frames[i];
+        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
             continue;
 
         // only accept lever groups with at least 2 calibration frames
@@ -354,7 +354,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             parameter_blocks);
 
         const visual_marker_mapping::CameraModel& camModel
-            = ptuData.cameraModelById[curJointData.camera_id];
+            = calib_data.cameraModelById[curJointData.camera_id];
 
 		const auto& marker_observations = curJointData.marker_observations;
         for (const auto& tagObs : marker_observations)
@@ -463,16 +463,16 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
-    if (jointIndex + 1 < ptuData.joints.size())
+    if (jointIndex + 1 < calib_data.joints.size())
         return;
 
     cameraPose = camPoses[0];
-    for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
+    for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
+        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
             continue;
 
-        const auto& jointConfig = ptuData.ptuImagePoses[i].joint_config;
+        const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
         Eigen::Matrix<double, 7, 1> root;
         root << 0, 0, 0, 1, 0, 0, 0;
@@ -530,12 +530,12 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     {
         // compute rms for forward kinematics
         numc = 0;
-        for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
+        for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
         {
-            if (!onlyCamIds.count(ptuData.ptuImagePoses[i].camera_id))
+            if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
                 continue;
 
-            const auto& jointConfig = ptuData.ptuImagePoses[i].joint_config;
+            const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
             for (size_t j = 0; j < jointIndex + 1; j++)
                 joint_positions[j][numc] = jointConfig[j];
@@ -565,14 +565,14 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
         jointDataPt.add_child("translation", translationPt);
         jointDataPt.add_child("rotation", rotationPt);
         jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
-        jointDataPt.put("name", ptuData.joints[j].name);
+        jointDataPt.put("name", calib_data.joints[j].name);
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
         j++;
     }
     root.add_child("kinematic_chain", kinematicChainPt);
     pt::ptree cameraPt;
-    for (const auto& id_to_cam_model : ptuData.cameraModelById)
+    for (const auto& id_to_cam_model : calib_data.cameraModelById)
     {
         const Eigen::Vector3d translation = cameraPose.head(3);
         const Eigen::Vector4d rotation = cameraPose.segment<4>(3);
@@ -607,26 +607,17 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
 
     // Read Pan Tilt Data
     {
-        ptuData = PtuImageCapture(folder + "/calibration_frames.json");
+        calib_data = CalibrationData(folder + "/calibration_frames.json");
         std::cout << "Read PTU Data!" << std::endl;
     }
 
-//    {
-//        ptuDetectionResults[0]
-//            = visual_marker_mapping::readDetectionResult(folder + "/cam0/marker_detections.json");
-//        std::cout << "Read PTU Image Detections!" << std::endl;
-//        ptuDetectionResults[1]
-//            = visual_marker_mapping::readDetectionResult(folder + "/cam1/marker_detections.json");
-//        std::cout << "Read PTU Image Detections!" << std::endl;
-//    }
-
-    for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
+    for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        const JointImageInfo& curJointInfo = ptuData.ptuImagePoses[i];
+        const CalibrationFrame& curJointInfo = calib_data.calib_frames[i];
         //        const visual_marker_mapping::CameraModel& camModel
         //            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
         const visual_marker_mapping::CameraModel& camModel
-            = ptuData.cameraModelById[curJointInfo.camera_id];
+            = calib_data.cameraModelById[curJointInfo.camera_id];
 
         Eigen::Quaterniond q;
         Eigen::Vector3d t;
@@ -641,15 +632,15 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
         reconstructedPoses[i] = dbg.cam;
     }
 
-    jointData.resize(ptuData.joints.size());
+    jointData.resize(calib_data.joints.size());
     for (size_t j = 0; j < jointData.size(); j++)
     {
         jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
-        jointData[j].ticks_to_rad = ptuData.joints[j].ticks_to_rad;
+        jointData[j].ticks_to_rad = calib_data.joints[j].ticks_to_rad;
     }
-    for (size_t j = 0; j < ptuData.joints.size(); j++)
+    for (size_t j = 0; j < calib_data.joints.size(); j++)
     {
-        std::cout << "Optimizing joint: " << ptuData.joints[j].name << std::endl;
+        std::cout << "Optimizing joint: " << calib_data.joints[j].name << std::endl;
         optimizeJoint(j);
         // continue;
         // return;
@@ -664,7 +655,7 @@ bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(size_t calibration_
     std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > observations2D;
     // find all matches between this image and the reconstructions
     const auto& marker_observations
-        = ptuData.ptuImagePoses[calibration_frame_id].marker_observations;
+        = calib_data.calib_frames[calibration_frame_id].marker_observations;
     for (const auto& tagObs : marker_observations)
     {
         const auto tagIt = reconstructedTags.find(tagObs.tagId);

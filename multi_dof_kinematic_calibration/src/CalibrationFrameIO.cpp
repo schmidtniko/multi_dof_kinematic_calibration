@@ -11,7 +11,7 @@
 namespace multi_dof_kinematic_calibration
 {
 //----------------------------------------------------------------------------
-PtuImageCapture::PtuImageCapture(const std::string& filePath)
+CalibrationData::CalibrationData(const std::string& filePath)
 {
     namespace pt = boost::property_tree;
     pt::ptree rootNode;
@@ -60,7 +60,7 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
 
     for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
     {
-        JointImageInfo ptuInfo;
+        CalibrationFrame ptuInfo;
 		boost::filesystem::path image_path=ptuPoseNode.second.get<std::string>("image_path");
 		if (image_path.is_relative())
             image_path = boost::filesystem::path(filePath).parent_path() / image_path;
@@ -96,7 +96,7 @@ PtuImageCapture::PtuImageCapture(const std::string& filePath)
 		}
 		
 		
-        ptuImagePoses.emplace_back(std::move(ptuInfo));
+        calib_frames.emplace_back(std::move(ptuInfo));
     }
 }
 //----------------------------------------------------------------------------

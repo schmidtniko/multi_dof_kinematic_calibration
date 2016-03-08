@@ -18,10 +18,7 @@ struct PtuCalibrationProject
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructedTags;
 
     // Pan Tilt data
-    PtuImageCapture ptuData;
-
-    // Pan Tilt Image Detections
-    //std::map<int, visual_marker_mapping::DetectionResult> ptuDetectionResults;
+    CalibrationData calib_data;
 
     bool computeRelativeCameraPoseFromImg(size_t calibration_frame_id, const Eigen::Matrix3d& K,
         const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
