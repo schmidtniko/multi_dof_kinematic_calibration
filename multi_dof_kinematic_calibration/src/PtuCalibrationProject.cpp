@@ -479,14 +479,6 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     if (jointIndex + 1 < ptuData.joints.size())
         return;
 
-//#define exportJson
-#ifdef exportJson
-    std::ofstream jsonStream;
-    jsonStream.open("results.json");
-    jsonStream << "{" << std::endl;
-    jsonStream << "\"camera_poses\":  [" << std::endl;
-#endif
-
     cameraPose = camPoses[0];
     for (size_t i = 0; i < ptuData.ptuImagePoses.size(); i++)
     {
@@ -513,12 +505,9 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             dbg.cam.q = invRet.segment<4>(3);
             dbg.cam.t = invRet.segment<3>(0);
             dbg.type = 1;
-            //        debugVis.push_back(dbg);
+            // debugVis.push_back(dbg);
         }
 
-#ifdef exportJson
-        jsonStream << "{" << std::endl;
-#endif
         // std::cout << "NumCamPoses" << camPoses.size() << std::endl;
         for (size_t c = 0; c < camPoses.size(); c++)
         {
@@ -529,33 +518,13 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
             dbg.cam.q = invRet.segment<4>(3);
             dbg.cam.t = invRet.segment<3>(0);
 
-#ifdef exportJson
-            jsonStream << "\"q\": [" << ret(3) << ", " << ret(4) << ", " << ret(5) << ", " << ret(6)
-                       << "]," << std::endl;
-            jsonStream << "\"t\": [" << ret(0) << ", " << ret(1) << ", " << ret(2) << "],"
-                       << std::endl;
-            jsonStream << "\"index\": " << i << std::endl;
-#endif
-
             debugVis.push_back(dbg);
         }
-
-#ifdef exportJson
-        jsonStream << "}";
-        if (i < ptuData.ptuImagePoses.size() - 1)
-            jsonStream << ",";
-        jsonStream << std::endl;
-#endif
     }
 
 
     Eigen::Matrix<double, 7, 1> root;
     root << 0, 0, 0, 1, 0, 0, 0;
-
-#ifdef exportJson
-    jsonStream << "], " << std::endl;
-    jsonStream << "\"axes\": [" << std::endl;
-#endif
 
     for (size_t j = 0; j < jointIndex + 1; j++)
     {
@@ -567,28 +536,8 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
         dbg.cam.t = invRet.segment<3>(0);
         dbg.type = 1;
 
-// print for evaluation
-#ifdef exportJson
-		jsonStream << "{" << std::endl;
-        jsonStream << "\"joint\": " << j << "," << std::endl;
-        jsonStream << "\"t\":[" << root(0) << ", " << root(1) << ", " << root(2) << "],"
-                   << std::endl;
-        jsonStream << "\"q\": [" << root(3) << ", " << root(4) << ", " << root(5) << ", " << root(6)
-                   << "]" << std::endl;
-        jsonStream << "}";
-        if (j < jointIndex)
-            jsonStream << ",";
-        jsonStream << std::endl;
-#endif
-
         debugVis.push_back(dbg);
     }
-
-#ifdef exportJson
-    jsonStream << "]" << std::endl;
-    jsonStream << "}" << std::endl;
-    jsonStream.close();
-#endif
 
     if (1)
     {
