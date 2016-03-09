@@ -9,10 +9,10 @@ endif()
 
 add_executable(${PROJECT_NAME}
                src/CalibrationDataIO.cpp
-               src/PtuCalibrationProject.cpp
+               src/Calibrator.cpp
                src/main.cpp
                include/multi_dof_kinematic_calibration/CeresUtil.h
-               include/multi_dof_kinematic_calibration/PtuCalibrationProject.h
+               include/multi_dof_kinematic_calibration/Calibrator.h
                include/multi_dof_kinematic_calibration/CalibrationDataIO.h)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)

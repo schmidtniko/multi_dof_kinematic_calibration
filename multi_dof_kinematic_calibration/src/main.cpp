@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include "multi_dof_kinematic_calibration/PtuCalibrationProject.h"
+#include "multi_dof_kinematic_calibration/Calibrator.h"
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
         const boost::filesystem::path project_path = vm["project_path"].as<std::string>();
 
-        PtuCalibrationProject proj;
+        Calibrator proj;
         proj.processFolder(project_path.string());
 
         const auto export_path = (project_path / "calibration_result.json").string();

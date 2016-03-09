@@ -1,5 +1,5 @@
-#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_PTUCALIBRATIONPROJECT_H
-#define MULTI_DOF_KINEMATIC_CALIBRATION_PTUCALIBRATIONPROJECT_H
+#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_CALIBRATOR_H
+#define MULTI_DOF_KINEMATIC_CALIBRATION_CALIBRATOR_H
 
 #include "visual_marker_mapping/Camera.h"
 #include "visual_marker_mapping/TagReconstructor.h"
@@ -8,7 +8,7 @@
 
 namespace multi_dof_kinematic_calibration
 {
-struct PtuCalibrationProject
+struct Calibrator
 {
     void processFolder(const std::string& folder);
 

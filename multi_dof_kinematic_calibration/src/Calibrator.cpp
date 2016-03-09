@@ -1,4 +1,4 @@
-#include "multi_dof_kinematic_calibration/PtuCalibrationProject.h"
+#include "multi_dof_kinematic_calibration/Calibrator.h"
 
 #include <Eigen/Geometry>
 
@@ -141,7 +141,7 @@ struct KinematicChainPoseError
 
 
 //-----------------------------------------------------------------------------
-void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
+void Calibrator::optimizeJoint(size_t jointIndex)
 {
     const std::set<int> onlyCamIds = { 1 };
 
@@ -546,7 +546,7 @@ void PtuCalibrationProject::optimizeJoint(size_t jointIndex)
     }
 }
 //-----------------------------------------------------------------------------
-void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath) const
+void Calibrator::exportCalibrationResults(const std::string& filePath) const
 {
     namespace pt = boost::property_tree;
     pt::ptree root;
@@ -594,7 +594,7 @@ void PtuCalibrationProject::exportCalibrationResults(const std::string& filePath
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
-void PtuCalibrationProject::processFolder(const std::string& folder)
+void Calibrator::processFolder(const std::string& folder)
 {
     // Read Reconstructions
     {
@@ -647,7 +647,7 @@ void PtuCalibrationProject::processFolder(const std::string& folder)
     }
 }
 //-----------------------------------------------------------------------------
-bool PtuCalibrationProject::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
+bool Calibrator::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
     const Eigen::Matrix3d& K, const Eigen::Matrix<double, 5, 1>& distCoefficients,
     Eigen::Quaterniond& q, Eigen::Vector3d& t)
 {
