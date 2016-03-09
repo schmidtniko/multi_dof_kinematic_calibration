@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 
 #include "visual_marker_mapping/CameraUtilities.h"
+#include "visual_marker_mapping/ReconstructionIO.h"
 
 namespace multi_dof_kinematic_calibration
 {
@@ -16,6 +17,20 @@ CalibrationData::CalibrationData(const std::string& filePath)
     namespace pt = boost::property_tree;
     pt::ptree rootNode;
     pt::read_json(filePath, rootNode);
+
+    // Read Reconstructions
+    {
+        boost::filesystem::path reconstruction_filename
+            = rootNode.get<std::string>("world_reference");
+        if (reconstruction_filename.is_relative())
+            reconstruction_filename
+                = boost::filesystem::path(filePath).parent_path() / reconstruction_filename;
+        visual_marker_mapping::CameraModel camModel;
+        std::map<int, visual_marker_mapping::Camera> reconstructedCameras;
+        visual_marker_mapping::parseReconstructions(
+            reconstruction_filename.string(), reconstructed_tags, reconstructedCameras, camModel);
+        std::cout << "Read reconstructions!" << std::endl;
+    }
 
     for (const auto& jointNode : rootNode.get_child("kinematic_chain"))
     {

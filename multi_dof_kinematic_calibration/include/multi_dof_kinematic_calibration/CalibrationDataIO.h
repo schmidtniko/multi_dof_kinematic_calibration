@@ -3,6 +3,7 @@
 
 #include "visual_marker_mapping/CameraModel.h"
 #include "visual_marker_mapping/TagDetector.h"
+#include "visual_marker_mapping/TagReconstructor.h"
 
 #include <vector>
 #include <functional>
@@ -35,6 +36,8 @@ struct CalibrationData
 
     std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
+
+    std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
 };
 }
 

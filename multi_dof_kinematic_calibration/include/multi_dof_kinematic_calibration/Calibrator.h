@@ -14,9 +14,6 @@ struct Calibrator
 
     void optimizeJoint(size_t jointIndex);
 
-    // Reconstruction
-    std::map<int, visual_marker_mapping::ReconstructedTag> reconstructedTags;
-
     // Pan Tilt data
     CalibrationData calib_data;
 

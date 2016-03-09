@@ -359,8 +359,8 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         const auto& marker_observations = curJointData.marker_observations;
         for (const auto& tagObs : marker_observations)
         {
-            const auto tagIt = reconstructedTags.find(tagObs.tagId);
-            if (tagIt == reconstructedTags.end())
+            const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);
+            if (tagIt == calib_data.reconstructed_tags.end())
                 continue;
 
             const visual_marker_mapping::ReconstructedTag& recTag = tagIt->second;
@@ -596,19 +596,10 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
 //-----------------------------------------------------------------------------
 void Calibrator::processFolder(const std::string& folder)
 {
-    // Read Reconstructions
-    {
-        visual_marker_mapping::CameraModel camModel;
-        std::map<int, visual_marker_mapping::Camera> reconstructedCameras;
-        visual_marker_mapping::parseReconstructions(
-            folder + "/reconstruction.json", reconstructedTags, reconstructedCameras, camModel);
-        std::cout << "Read reconstructions!" << std::endl;
-    }
-
-    // Read Pan Tilt Data
+    // Read Calibration Data
     {
         calib_data = CalibrationData(folder + "/calibration_data.json");
-        std::cout << "Read PTU Data!" << std::endl;
+        std::cout << "Read Calibration Data!" << std::endl;
     }
 
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
@@ -658,8 +649,8 @@ bool Calibrator::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
         = calib_data.calib_frames[calibration_frame_id].marker_observations;
     for (const auto& tagObs : marker_observations)
     {
-        const auto tagIt = reconstructedTags.find(tagObs.tagId);
-        if (tagIt == reconstructedTags.end())
+        const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);
+        if (tagIt == calib_data.reconstructed_tags.end())
             continue;
 
         const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
