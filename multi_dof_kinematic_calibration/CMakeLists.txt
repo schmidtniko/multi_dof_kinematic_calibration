@@ -8,12 +8,12 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang") # Works for Clang and AppleClang
 endif()
 
 add_executable(${PROJECT_NAME}
-               src/CalibrationFrameIO.cpp
+               src/CalibrationDataIO.cpp
                src/PtuCalibrationProject.cpp
                src/main.cpp
                include/multi_dof_kinematic_calibration/CeresUtil.h
                include/multi_dof_kinematic_calibration/PtuCalibrationProject.h
-               include/multi_dof_kinematic_calibration/CalibrationFrameIO.h)
+               include/multi_dof_kinematic_calibration/CalibrationDataIO.h)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
