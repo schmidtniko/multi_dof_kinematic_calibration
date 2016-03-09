@@ -58,7 +58,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
         std::cout << "Read marker detections for camera " << camera_id << "!" << std::endl;
     }
 
-    for (const auto& ptuPoseNode : rootNode.get_child("joint_configurations"))
+    for (const auto& ptuPoseNode : rootNode.get_child("calibration_frames"))
     {
         CalibrationFrame ptuInfo;
         boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>("image_path");
