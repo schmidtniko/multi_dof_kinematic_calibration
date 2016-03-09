@@ -607,7 +607,7 @@ void Calibrator::processFolder(const std::string& folder)
 
     // Read Pan Tilt Data
     {
-        calib_data = CalibrationData(folder + "/calibration_frames.json");
+        calib_data = CalibrationData(folder + "/calibration_data.json");
         std::cout << "Read PTU Data!" << std::endl;
     }
 
