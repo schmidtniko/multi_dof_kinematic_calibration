@@ -27,7 +27,6 @@ struct CalibrationFrame
 
 struct CalibrationData
 {
-    CalibrationData() {}
     CalibrationData(const std::string& filePath);
 
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
