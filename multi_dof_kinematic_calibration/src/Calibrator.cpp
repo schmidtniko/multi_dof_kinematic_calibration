@@ -227,22 +227,45 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
-        // x always has to be positive; y,z have to be 0
-        problem_simple.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization);
-        problem_simple.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization);
+        if (calib_data.joints[j].type == "1_dof_joint")
+        {
+            // x always has to be positive; y,z have to be 0
+            problem_simple.AddParameterBlock(
+                &joint_to_parent_pose(0), 3, yzconstant_parametrization);
+            problem_simple.AddParameterBlock(
+                &joint_to_parent_pose(3), 4, quaternion_parameterization);
 
-        // problem_simple.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
+            // problem_simple.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
 
-        problem_simple.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-        // problem_simple.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+            problem_simple.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
+            // problem_simple.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-        problem_full.AddParameterBlock(&joint_to_parent_pose(0), 3, yzconstant_parametrization2);
-        problem_full.AddParameterBlock(&joint_to_parent_pose(3), 4, quaternion_parameterization2);
+            problem_full.AddParameterBlock(
+                &joint_to_parent_pose(0), 3, yzconstant_parametrization2);
+            problem_full.AddParameterBlock(
+                &joint_to_parent_pose(3), 4, quaternion_parameterization2);
 
-        problem_full.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
-        // problem_full.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
+            problem_full.AddParameterBlock(&jointData[j].ticks_to_rad, 1);
+            // problem_full.SetParameterBlockConstant(&jointData[j].ticks_to_rad);
 
-        // problem_full.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
+            // problem_full.SetParameterLowerBound(&joint_to_parent_pose(0), 0, 0);
+        }
+        else if (calib_data.joints[j].type == "pose")
+        {
+            problem_simple.AddParameterBlock(&joint_to_parent_pose(0), 3);
+            problem_simple.AddParameterBlock(
+                &joint_to_parent_pose(3), 4, quaternion_parameterization);
+
+            problem_full.AddParameterBlock(&joint_to_parent_pose(0), 3);
+            problem_full.AddParameterBlock(
+                &joint_to_parent_pose(3), 4, quaternion_parameterization2);
+
+
+            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(0));
+            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(3));
+            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(0));
+            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(3));
+        }
     }
 
 
@@ -265,6 +288,16 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
 
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
+        if (calib_data.calib_frames[i].location_id != -1)
+        {
+            auto& location = location_id_to_location[calib_data.calib_frames[i].location_id];
+            problem_simple.AddParameterBlock(&location(0), 3);
+            problem_simple.AddParameterBlock(&location(3), 4, quaternion_parameterization);
+
+            problem_full.AddParameterBlock(&location(0), 3);
+            problem_full.AddParameterBlock(&location(3), 4, quaternion_parameterization2);
+        }
+
         const std::vector<int>& jointConfig = calib_data.calib_frames[i].joint_config;
 
         for (size_t j = 0; j < upTojointIndex; j++) // this loop could be swapped with the prev
@@ -300,22 +333,28 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
 
             //
             joint_positions[j][i] = jointConfig[j];
-            problem_simple.AddParameterBlock(&joint_positions[j][i], 1);
-            problem_simple.SetParameterBlockConstant(&joint_positions[j][i]);
 
-            problem_full.AddParameterBlock(&joint_positions[j][i], 1);
+            if (calib_data.joints[j].type == "1_dof_joint")
+            {
 
-            // Set angular noise
-            const double noise_in_ticks
-                = calib_data.joints[j].angular_noise_std_dev / calib_data.joints[j].ticks_to_rad;
-            if (noise_in_ticks < 1e-8)
-            {
-                problem_full.SetParameterBlockConstant(&joint_positions[j][i]);
-            }
-            else
-            {
-                auto anglePrior = GaussianPrior1D::Create(joint_positions[j][i], noise_in_ticks);
-                problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][i]);
+                problem_simple.AddParameterBlock(&joint_positions[j][i], 1);
+                problem_simple.SetParameterBlockConstant(&joint_positions[j][i]);
+
+                problem_full.AddParameterBlock(&joint_positions[j][i], 1);
+
+                // Set angular noise
+                const double noise_in_ticks = calib_data.joints[j].angular_noise_std_dev
+                    / calib_data.joints[j].ticks_to_rad;
+                if (noise_in_ticks < 1e-8)
+                {
+                    problem_full.SetParameterBlockConstant(&joint_positions[j][i]);
+                }
+                else
+                {
+                    auto anglePrior
+                        = GaussianPrior1D::Create(joint_positions[j][i], noise_in_ticks);
+                    problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][i]);
+                }
             }
 #endif
         }
@@ -390,16 +429,31 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
 
             TransformationChain chain;
 
+
+            /// hier optional eine location node hinzufuegen
+
             constexpr bool robustify = false;
             std::vector<double*> parameter_blocks;
             for (size_t j = 0; j < upTojointIndex; j++)
             {
-                chain.add1DOFJoint();
                 const size_t dj = indexToDistinctJoint[i][j];
-                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
-                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
-                parameter_blocks.push_back(&joint_positions[j][dj]);
-                parameter_blocks.push_back(&jointData[j].ticks_to_rad);
+
+                if (calib_data.joints[j].type == "1_dof_joint")
+                {
+                    chain.add1DOFJoint();
+
+                    parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
+                    parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
+                    parameter_blocks.push_back(&joint_positions[j][dj]);
+                    parameter_blocks.push_back(&jointData[j].ticks_to_rad);
+                }
+                else if (calib_data.joints[j].type == "pose")
+                {
+                    chain.addPose();
+
+                    parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
+                    parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
+                }
             }
             chain.addPose();
             const size_t dl = indexToDistinctLever[i];
@@ -505,6 +559,11 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
     std::cout << "Tick2Rad for all joints: ";
     for (size_t j = 0; j < upTojointIndex; j++)
         std::cout << jointData[j].ticks_to_rad << " ";
+    std::cout << std::endl;
+
+    std::cout << "Joint poses: \n";
+    for (size_t j = 0; j < upTojointIndex; j++)
+        std::cout << jointData[j].joint_to_parent_pose.transpose() << "\n";
     std::cout << std::endl;
 
     std::cout << "CamPoses: " << std::endl;
@@ -640,6 +699,11 @@ void Calibrator::calibrate()
 {
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
+        if (calib_data.calib_frames[i].location_id != -1)
+        {
+            location_id_to_location[calib_data.calib_frames[i].location_id] << 0, 0, 0, 1, 0, 0, 0;
+        }
+
         for (const auto& id_to_cam_model : calib_data.cameraModelById)
         {
             const size_t camera_id = id_to_cam_model.first;
@@ -666,7 +730,7 @@ void Calibrator::calibrate()
     jointData.resize(calib_data.joints.size());
     for (size_t j = 0; j < jointData.size(); j++)
     {
-        jointData[j].joint_to_parent_pose << 0, 0, 0, 1, 0, 0, 0;
+        jointData[j].joint_to_parent_pose = calib_data.joints[j].joint_to_parent_guess;
         jointData[j].ticks_to_rad = calib_data.joints[j].ticks_to_rad;
     }
     for (size_t j = 0; j < calib_data.joints.size(); j++)

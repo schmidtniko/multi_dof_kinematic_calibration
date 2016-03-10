@@ -39,8 +39,20 @@ CalibrationData::CalibrationData(const std::string& filePath)
     {
         JointInfo inf;
         inf.name = jointNode.second.get<std::string>("name");
-        inf.ticks_to_rad = jointNode.second.get<double>("ticks_to_rad");
-        inf.angular_noise_std_dev = jointNode.second.get<double>("angular_noise_std_dev");
+        inf.type = jointNode.second.get<std::string>("type");
+        if (inf.type == "1_dof_joint")
+        {
+            inf.ticks_to_rad = jointNode.second.get<double>("ticks_to_rad");
+            inf.angular_noise_std_dev = jointNode.second.get<double>("angular_noise_std_dev");
+        }
+		else if (inf.type == "pose")
+		{
+		}
+		else
+			throw std::runtime_error("Unknown joint type: " + inf.type);
+        inf.joint_to_parent_guess
+            = visual_marker_mapping::propertyTree2EigenMatrix<Eigen::Matrix<double, 7, 1> >(
+                jointNode.second.get_child("joint_to_parent_pose_guess"));
         joints.emplace_back(std::move(inf));
     }
 
@@ -77,16 +89,18 @@ CalibrationData::CalibrationData(const std::string& filePath)
     }
 
     //	std::ofstream conv("conv.txt");
-    for (const auto& ptuPoseNode : rootNode.get_child("calibration_frames"))
+    for (const auto& calib_frame_node : rootNode.get_child("calibration_frames"))
     {
-        CalibrationFrame ptuInfo;
+        CalibrationFrame calib_frame;
+
+        calib_frame.location_id = calib_frame_node.second.get<int>("location_id");
 
         for (const auto& id_to_cam_model : cameraModelById)
         {
             const int camera_id = id_to_cam_model.first;
             char buffer[256];
             sprintf(buffer, "camera_image_path_%d", camera_id);
-            boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>(buffer);
+            boost::filesystem::path image_path = calib_frame_node.second.get<std::string>(buffer);
             if (image_path.is_relative())
                 image_path = boost::filesystem::path(filePath).parent_path() / image_path;
 
@@ -105,11 +119,11 @@ CalibrationData::CalibrationData(const std::string& filePath)
             {
                 if (tagObs.imageId != detectedImageId)
                     continue;
-				
+
                 for (size_t c = 0; c < 4; c++)
                 {
                     const int point_id = tagObs.tagId * 4 + c;
-                    ptuInfo.cam_id_to_observations[camera_id][point_id] = tagObs.corners[c];
+                    calib_frame.cam_id_to_observations[camera_id][point_id] = tagObs.corners[c];
                 }
             }
         }
@@ -119,10 +133,15 @@ CalibrationData::CalibrationData(const std::string& filePath)
 
         for (size_t j = 0; j < joints.size(); j++)
         {
-            char buffer[256];
-            sprintf(buffer, "joint_ticks_%d", j);
-            const int ticks = ptuPoseNode.second.get<int>(buffer);
-            ptuInfo.joint_config.push_back(ticks);
+			if (joints[j].type == "1_dof_joint")
+	        {
+				char buffer[256];
+				sprintf(buffer, "joint_ticks_%d", j);
+				const int ticks = calib_frame_node.second.get<int>(buffer);
+				calib_frame.joint_config.push_back(ticks);
+			}
+			else
+				calib_frame.joint_config.push_back(0);
         }
 
 //		if (ptuInfo.camera_id==0)
@@ -166,7 +185,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
         }
 #endif
 
-        calib_frames.emplace_back(std::move(ptuInfo));
+        calib_frames.emplace_back(std::move(calib_frame));
     }
 }
 //----------------------------------------------------------------------------

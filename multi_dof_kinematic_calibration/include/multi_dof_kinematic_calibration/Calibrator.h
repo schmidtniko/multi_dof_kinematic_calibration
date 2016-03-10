@@ -51,6 +51,9 @@ struct Calibrator
     Eigen::Matrix<double, 7, 1> cameraPose;
 
     std::vector<JointData> jointData;
+	
+	
+	std::map<int, Eigen::Matrix<double,7,1> > location_id_to_location;
 };
 }
 

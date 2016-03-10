@@ -14,11 +14,16 @@ namespace multi_dof_kinematic_calibration
 struct JointInfo
 {
     std::string name;
+	std::string type;
     double ticks_to_rad; // ticks * ticks_to_rad = rad
     double angular_noise_std_dev;
+	
+	Eigen::Matrix<double,7,1> joint_to_parent_guess; 
 };
 struct CalibrationFrame
 {
+	int location_id; // -1 for no location
+	
     std::vector<int> joint_config; // jointName --> {ticks}
 	
 	std::map<int, std::map<std::uint32_t, Eigen::Vector2d> > cam_id_to_observations;
