@@ -31,13 +31,13 @@ struct Calibrator
 
     //////////
 
-    struct DebugVis
-    {
-        visual_marker_mapping::Camera cam;
-        int type = 0;
-    };
+//    struct DebugVis
+//    {
+//        visual_marker_mapping::Camera cam;
+//        int type = 0;
+//    };
 
-    std::vector<DebugVis> debugVis;
+//    std::vector<DebugVis> debugVis;
 
 
     struct JointData

@@ -19,13 +19,9 @@ struct JointInfo
 };
 struct CalibrationFrame
 {
-    //int camera_id = -1;
-    //std::string image_path;
     std::vector<int> joint_config; // jointName --> {ticks}
 	
-	std::map<int, std::vector<visual_marker_mapping::TagObservation> > marker_observations;
-	
-	std::map<int, std::map<int, Eigen::Vector2d> > cameraIdToObservations;
+	std::map<int, std::map<std::uint32_t, Eigen::Vector2d> > cam_id_to_observations;
 };
 
 
@@ -38,8 +34,8 @@ struct CalibrationData
 
     std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
-
-    std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
+	
+	std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
 };
 }
 

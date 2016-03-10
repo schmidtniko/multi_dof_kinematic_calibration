@@ -25,11 +25,14 @@ CalibrationData::CalibrationData(const std::string& filePath)
         if (reconstruction_filename.is_relative())
             reconstruction_filename
                 = boost::filesystem::path(filePath).parent_path() / reconstruction_filename;
-        visual_marker_mapping::CameraModel camModel;
-        std::map<int, visual_marker_mapping::Camera> reconstructedCameras;
+        visual_marker_mapping::CameraModel cam_model;
+        std::map<int, visual_marker_mapping::Camera> reconstructed_cameras;
+        std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
         visual_marker_mapping::parseReconstructions(
-            reconstruction_filename.string(), reconstructed_tags, reconstructedCameras, camModel);
+            reconstruction_filename.string(), reconstructed_tags, reconstructed_cameras, cam_model);
         std::cout << "Read reconstructions!" << std::endl;
+
+        reconstructed_map_points = visual_marker_mapping::flattenReconstruction(reconstructed_tags);
     }
 
     for (const auto& jointNode : rootNode.get_child("kinematic_chain"))
@@ -84,13 +87,8 @@ CalibrationData::CalibrationData(const std::string& filePath)
             char buffer[256];
             sprintf(buffer, "camera_image_path_%d", camera_id);
             boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>(buffer);
-            // auto origim = image_path;
             if (image_path.is_relative())
                 image_path = boost::filesystem::path(filePath).parent_path() / image_path;
-            std::cout << image_path.string() << std::endl;
-
-            // TODO: Detektionen einlesen, struct befuellen
-            // Achtung: Calibration frame jetz pro bildpaar
 
             // find marker observations for this calibration frame
             int detectedImageId = -1;
@@ -107,8 +105,12 @@ CalibrationData::CalibrationData(const std::string& filePath)
             {
                 if (tagObs.imageId != detectedImageId)
                     continue;
-                ptuInfo.marker_observations[camera_id].push_back(tagObs);
-                ptuInfo.marker_observations[camera_id].back().imageId = -1;
+				
+                for (size_t c = 0; c < 4; c++)
+                {
+                    const int point_id = tagObs.tagId * 4 + c;
+                    ptuInfo.cam_id_to_observations[camera_id][point_id] = tagObs.corners[c];
+                }
             }
         }
 

@@ -21,6 +21,31 @@
 #include <iostream>
 #include <fstream>
 
+template <typename Map1, typename Map2, typename F>
+void iterateMatches(const Map1& m1, const Map2& m2, F&& f)
+{
+    if (m1.size() < m2.size())
+    {
+        for (auto it1 = std::begin(m1); it1 != std::end(m1); ++it1)
+        {
+            const auto it2 = m2.find(it1->first);
+            if (it2 == m2.end())
+                continue;
+            f(it1->first, it1->second, it2->second);
+        }
+    }
+    else
+    {
+        for (auto it2 = std::begin(m2); it2 != std::end(m2); ++it2)
+        {
+            const auto it1 = m1.find(it2->first);
+            if (it1 == m1.end())
+                continue;
+            f(it1->first, it1->second, it2->second);
+        }
+    }
+}
+
 namespace multi_dof_kinematic_calibration
 {
 struct KinematicChainRepError
@@ -314,8 +339,6 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     // curImage=0;
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        const CalibrationFrame& curJointData = calib_data.calib_frames[i];
-
         // only accept lever groups with at least 2 calibration frames
         if (distinctFrequencies[indexToDistinctLever[i]] < 2)
         {
@@ -328,7 +351,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         const int camera_id = 1; // TODO!!!!!!!! SCHLEIFE
 
 
-        Eigen::Matrix<double, 7, 1> world_to_cam=reconstructedPoses[std::make_pair(i, camera_id)];
+        Eigen::Matrix<double, 7, 1> world_to_cam = reconstructedPoses[std::make_pair(i, camera_id)];
         // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
@@ -353,17 +376,11 @@ void Calibrator::optimizeJoint(size_t jointIndex)
 
         const visual_marker_mapping::CameraModel& camModel = calib_data.cameraModelById[camera_id];
 
-        const auto& marker_observations = curJointData.marker_observations.find(camera_id)->second;
-        for (const auto& tagObs : marker_observations)
-        {
-            const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);
-            if (tagIt == calib_data.reconstructed_tags.end())
-                continue;
-
-            const visual_marker_mapping::ReconstructedTag& recTag = tagIt->second;
-
-            const std::vector<Eigen::Vector3d> tagCorners = recTag.computeMarkerCorners3D();
-            for (size_t c = 0; c < 4; c++)
+        const auto& camera_observations
+            = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
+        const auto& world_points = calib_data.reconstructed_map_points;
+        iterateMatches(camera_observations, world_points,
+            [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
             {
                 // check origin pose
                 // {
@@ -375,9 +392,8 @@ void Calibrator::optimizeJoint(size_t jointIndex)
                 //     std::cout << "ERR: " << sqrt(res[0]*res[0]+res[1]*res[1]) << std::endl;
                 // }
 
-
-                auto fullCostFn = KinematicChainRepError::Create(tagObs.corners[c], tagCorners[c],
-                    camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
+                auto fullCostFn = KinematicChainRepError::Create(
+                    cp, wp, camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
                 problem_full.AddResidualBlock(fullCostFn,
                     robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
                     parameter_blocks);
@@ -388,8 +404,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
                         fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
                         return err.squaredNorm();
                     });
-            }
-        }
+            });
     }
     std::cout << "Done creating problems..." << std::endl;
 
@@ -481,15 +496,16 @@ void Calibrator::optimizeJoint(size_t jointIndex)
             tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
             root = poseAdd(root, tiltRot);
 
-            auto invRet = poseInverse(root);
-            DebugVis dbg;
-            dbg.cam.q = invRet.segment<4>(3);
-            dbg.cam.t = invRet.segment<3>(0);
-            dbg.type = 1;
+            // auto invRet = poseInverse(root);
+            //            DebugVis dbg;
+            //            dbg.cam.q = invRet.segment<4>(3);
+            //            dbg.cam.t = invRet.segment<3>(0);
+            //            dbg.type = 1;
             // debugVis.push_back(dbg);
         }
 
-        // std::cout << "NumCamPoses" << camPoses.size() << std::endl;
+// std::cout << "NumCamPoses" << camPoses.size() << std::endl;
+#if 0
         for (size_t c = 0; c < camPoses.size(); c++)
         {
             auto ret = poseAdd(root, poseInverse(camPoses[c]));
@@ -501,9 +517,10 @@ void Calibrator::optimizeJoint(size_t jointIndex)
 
             debugVis.push_back(dbg);
         }
+#endif
     }
 
-
+#if 0
     Eigen::Matrix<double, 7, 1> root;
     root << 0, 0, 0, 1, 0, 0, 0;
 
@@ -519,6 +536,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
 
         debugVis.push_back(dbg);
     }
+#endif
 
     if (1)
     {
@@ -604,13 +622,13 @@ void Calibrator::processFolder(const std::string& folder)
             Eigen::Vector3d t;
             computeRelativeCameraPoseFromImg(
                 camera_id, i, cam_model.getK(), cam_model.distortionCoefficients, q, t);
-			
-						
-			const auto cam_pose=cmakePose<double>(t,q);
 
-            DebugVis dbg;
-            dbg.cam.setQuat(q);
-            dbg.cam.t = t;
+
+            const auto cam_pose = cmakePose<double>(t, q);
+
+            //            DebugVis dbg;
+            //            dbg.cam.setQuat(q);
+            //            dbg.cam.t = t;
             //      if (ptuData.ptuImagePoses[i].cameraId==0)
             //        debugVis.push_back(dbg);
 
@@ -640,19 +658,17 @@ bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calib
     std::vector<Eigen::Vector3d> markerCorners3D;
     std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > observations2D;
     // find all matches between this image and the reconstructions
-    const auto& marker_observations
-        = calib_data.calib_frames[calibration_frame_id].marker_observations[camera_id];
-    for (const auto& tagObs : marker_observations)
-    {
-        const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);
-        if (tagIt == calib_data.reconstructed_tags.end())
-            continue;
 
-        const std::vector<Eigen::Vector3d> tagCorners = tagIt->second.computeMarkerCorners3D();
+    const auto& camera_observations
+        = calib_data.calib_frames[calibration_frame_id].cam_id_to_observations[camera_id];
+    const auto& world_points = calib_data.reconstructed_map_points;
+    iterateMatches(camera_observations, world_points,
+        [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
+        {
+            observations2D.push_back(cp);
+            markerCorners3D.push_back(wp);
+        });
 
-        markerCorners3D.insert(markerCorners3D.begin(), tagCorners.begin(), tagCorners.end());
-        observations2D.insert(observations2D.begin(), tagObs.corners.begin(), tagObs.corners.end());
-    }
     std::cout << "   Reconstructing camera pose from " << observations2D.size()
               << " 2d/3d correspondences" << std::endl;
 
