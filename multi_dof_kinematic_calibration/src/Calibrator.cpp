@@ -261,6 +261,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
                 &joint_to_parent_pose(3), 4, quaternion_parameterization2);
 
 
+			// hack
             problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(0));
             problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(3));
             problem_full.SetParameterBlockConstant(&joint_to_parent_pose(0));
