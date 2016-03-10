@@ -171,7 +171,7 @@ Calibrator::Calibrator(CalibrationData calib_data)
 {
 }
 //-----------------------------------------------------------------------------
-void Calibrator::optimizeJoint(size_t jointIndex)
+void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
 {
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -195,7 +195,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     const auto quaternion_parameterization = new ceres::QuaternionParameterization;
     const auto quaternion_parameterization2 = new ceres::QuaternionParameterization;
 
-    for (size_t j = 0; j < jointIndex + 1; j++)
+    for (size_t j = 0; j < upTojointIndex; j++)
     {
         auto& joint_to_parent_pose = jointData[j].joint_to_parent_pose;
 
@@ -235,16 +235,11 @@ void Calibrator::optimizeJoint(size_t jointIndex)
 
     std::vector<std::map<size_t, double> > joint_positions(calib_data.joints.size());
 
-    size_t numc = 0;
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        //        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-        //            continue;
-
         const std::vector<int>& jointConfig = calib_data.calib_frames[i].joint_config;
 
-
-        for (size_t j = 0; j < jointIndex + 1; j++) // this loop could be swapped with the prev
+        for (size_t j = 0; j < upTojointIndex; j++) // this loop could be swapped with the prev
         {
 #if 0 // one angle variable for each distinct(!) ptu pose
 			auto it = distinctJointPositions[j].find(jointConfig[j]);
@@ -272,33 +267,33 @@ void Calibrator::optimizeJoint(size_t jointIndex)
 				indexToDistinctJoint[i].push_back(it->second);
 #else
             // one angle variable per ptu pose
-            indexToDistinctJoint[i].push_back(numc);
-            distinctJointPositions[j].emplace(jointConfig[j], numc);
+            indexToDistinctJoint[i].push_back(i);
+            distinctJointPositions[j].emplace(jointConfig[j], i);
 
             //
-            joint_positions[j][numc] = jointConfig[j];
-            problem_simple.AddParameterBlock(&joint_positions[j][numc], 1);
-            problem_simple.SetParameterBlockConstant(&joint_positions[j][numc]);
+            joint_positions[j][i] = jointConfig[j];
+            problem_simple.AddParameterBlock(&joint_positions[j][i], 1);
+            problem_simple.SetParameterBlockConstant(&joint_positions[j][i]);
 
-            problem_full.AddParameterBlock(&joint_positions[j][numc], 1);
+            problem_full.AddParameterBlock(&joint_positions[j][i], 1);
 
             // Set angular noise
             const double noise_in_ticks
                 = calib_data.joints[j].angular_noise_std_dev / calib_data.joints[j].ticks_to_rad;
             if (noise_in_ticks < 1e-8)
             {
-                problem_full.SetParameterBlockConstant(&joint_positions[j][numc]);
+                problem_full.SetParameterBlockConstant(&joint_positions[j][i]);
             }
             else
             {
-                auto anglePrior = GaussianPrior1D::Create(joint_positions[j][numc], noise_in_ticks);
-                problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][numc]);
+                auto anglePrior = GaussianPrior1D::Create(joint_positions[j][i], noise_in_ticks);
+                problem_full.AddResidualBlock(anglePrior, nullptr, &joint_positions[j][i]);
             }
 #endif
         }
         {
             // one camera pose for each distinct lever config
-            std::vector<int> leverConfig(jointConfig.begin() + jointIndex + 1, jointConfig.end());
+            std::vector<int> leverConfig(jointConfig.begin() + upTojointIndex, jointConfig.end());
             // leverConfig.push_back(calib_data.calib_frames[i].camera_id);
 
             const auto it = distinctLeverPositions.find(leverConfig);
@@ -334,7 +329,6 @@ void Calibrator::optimizeJoint(size_t jointIndex)
                 distinctFrequencies[it->second]++;
             }
         }
-        numc++;
     }
 
 
@@ -367,9 +361,9 @@ void Calibrator::optimizeJoint(size_t jointIndex)
             // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
             constexpr bool robustify = false;
-            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, jointIndex + 1);
+            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, upTojointIndex);
             std::vector<double*> parameter_blocks;
-            for (size_t j = 0; j < jointIndex + 1; j++)
+            for (size_t j = 0; j < upTojointIndex; j++)
             {
                 const size_t dj = indexToDistinctJoint[i][j];
                 parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
@@ -401,7 +395,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
                     // }
 
                     auto fullCostFn = KinematicChainRepError::Create(
-                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), jointIndex + 1);
+                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), upTojointIndex);
                     problem_full.AddResidualBlock(fullCostFn,
                         robustify ? new ceres::HuberLoss(1.0)
                                   : nullptr, // new ceres::CauchyLoss(3),
@@ -477,7 +471,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     std::cout << "Resulting Parameters:" << std::endl;
 
     std::cout << "Tick2Rad for all joints: ";
-    for (size_t j = 0; j < jointIndex + 1; j++)
+    for (size_t j = 0; j < upTojointIndex; j++)
         std::cout << jointData[j].ticks_to_rad << " ";
     std::cout << std::endl;
 
@@ -485,7 +479,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < camPoses.size(); i++)
         std::cout << camPoses[i].transpose() << std::endl;
 
-    if (jointIndex + 1 < calib_data.joints.size())
+    if (upTojointIndex < calib_data.joints.size())
         return;
 
     cameraPose = camPoses[0];
@@ -496,7 +490,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         Eigen::Matrix<double, 7, 1> root;
         root << 0, 0, 0, 1, 0, 0, 0;
 
-        for (size_t j = 0; j < jointIndex + 1; j++)
+        for (size_t j = 0; j < upTojointIndex; j++)
         {
             root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
 
@@ -551,15 +545,12 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     if (1)
     {
         // compute rms for forward kinematics
-        numc = 0;
         for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
         {
             const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
-            for (size_t j = 0; j < jointIndex + 1; j++)
-                joint_positions[j][numc] = jointConfig[j];
-
-            numc++;
+            for (size_t j = 0; j < upTojointIndex; j++)
+                joint_positions[j][i] = jointConfig[j];
         }
         std::cout << "Test Reprojection Error RMS: " << computeRMSE() << std::endl;
     }
@@ -649,7 +640,7 @@ void Calibrator::calibrate()
     for (size_t j = 0; j < calib_data.joints.size(); j++)
     {
         std::cout << "Optimizing joint: " << calib_data.joints[j].name << std::endl;
-        optimizeJoint(j);
+        optimizeUpToJoint(j+1);
         // continue;
         // return;
     }
