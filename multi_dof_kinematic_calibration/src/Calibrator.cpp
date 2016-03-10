@@ -48,34 +48,94 @@ void iterateMatches(const Map1& m1, const Map2& m2, F&& f)
 
 namespace multi_dof_kinematic_calibration
 {
+struct TransformationChain
+{
+    enum class TransformType
+    {
+        POSE,
+        JOINT1DOF
+    };
+    void addPose() { chain.push_back(TransformType::POSE); }
+    void add1DOFJoint() { chain.push_back(TransformType::JOINT1DOF); }
+
+    template <typename CostFn> void addParametersToCostFn(CostFn* cost_function) const
+    {
+        for (const TransformType& t : chain)
+        {
+            if (t == TransformType::JOINT1DOF)
+            {
+                cost_function->AddParameterBlock(3); // trans
+                cost_function->AddParameterBlock(4); // quat
+                cost_function->AddParameterBlock(1); // angle
+                cost_function->AddParameterBlock(1); // joint scale
+            }
+            else if (t == TransformType::POSE)
+            {
+                cost_function->AddParameterBlock(3); // trans
+                cost_function->AddParameterBlock(4); // quat
+            }
+        }
+    }
+
+    template <typename T> Eigen::Matrix<T, 7, 1> endEffectorPose(T const* const* parameters) const
+    {
+        Eigen::Matrix<T, 7, 1> world_to_end_pose;
+        world_to_end_pose << T(0), T(0), T(0), T(1), T(0), T(0), T(0);
+        if (chain.empty())
+        {
+            return world_to_end_pose;
+        }
+        int pindex = 0;
+        for (size_t i = 0; i < chain.size(); ++i)
+        {
+            if (chain[i] == TransformType::JOINT1DOF)
+            {
+                const auto rotaxis_to_parent
+                    = cmakePose<T>(eMap3(parameters[pindex + 0]), eMap4(parameters[pindex + 1]));
+                const T jointScale = *parameters[pindex + 3];
+                const T angle = *parameters[pindex + 2] * jointScale;
+                Eigen::Matrix<T, 7, 1> invRot;
+                invRot << T(0), T(0), T(0), cos(-angle / T(2)), T(0), T(0), sin(-angle / T(2));
+
+                // world_to_end_pose = cposeAdd(world_to_cam, cposeAdd(invRot, rotaxis_to_parent));
+
+                world_to_end_pose = cposeAdd(
+                    invRot, cposeAdd(rotaxis_to_parent,
+                                world_to_end_pose)); // cposeAdd(world_to_cam, cposeAdd(invRot,
+                // rotaxis_to_parent));
+
+                pindex += 4;
+            }
+            else if (chain[i] == TransformType::POSE)
+            {
+                const auto parent_to_pose
+                    = cmakePose<T>(eMap3(parameters[pindex + 0]), eMap4(parameters[pindex + 1]));
+
+                world_to_end_pose = cposeAdd(parent_to_pose, world_to_end_pose);
+
+                pindex += 2;
+            }
+        }
+        return world_to_end_pose;
+    }
+
+    std::vector<TransformType> chain;
+};
+
 struct KinematicChainRepError
 {
     KinematicChainRepError(const Eigen::Vector2d& observation, const Eigen::Vector3d& point_3d,
-        const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K, size_t numJoints)
+        const Eigen::Matrix<double, 5, 1>& d, const Eigen::Matrix3d& K,
+        const TransformationChain& chain)
         : repError(observation, d, K)
         , point_3d(point_3d)
-        , numJoints(numJoints)
+        , chain(chain)
     {
     }
 
     template <typename T> bool operator()(T const* const* parameters, T* residuals) const
     {
-
-        const auto parent_to_cam = cmakePose<T>(
-            eMap3(parameters[4 * numJoints + 0]), eMap4(parameters[4 * numJoints + 1]));
-
-        auto world_to_cam = parent_to_cam;
-        for (int i = numJoints - 1; i >= 0; i--)
-        {
-            const auto rotaxis_to_parent
-                = cmakePose<T>(eMap3(parameters[i * 4 + 0]), eMap4(parameters[i * 4 + 1]));
-            const T jointScale = *parameters[4 * i + 3];
-            const T angle = *parameters[i * 4 + 2] * jointScale;
-            Eigen::Matrix<T, 7, 1> invRot;
-            invRot << T(0), T(0), T(0), cos(-angle / T(2)), T(0), T(0), sin(-angle / T(2));
-
-            world_to_cam = cposeAdd(world_to_cam, cposeAdd(invRot, rotaxis_to_parent));
-        }
+        const auto world_to_cam = chain.endEffectorPose<T>(parameters);
 
         const Eigen::Matrix<T, 3, 1> point_3d_T = point_3d.cast<T>();
         return repError(&world_to_cam(0), &world_to_cam(3), &point_3d_T(0), residuals);
@@ -85,56 +145,32 @@ struct KinematicChainRepError
     // the client code.
     static ceres::CostFunction* Create(const Eigen::Vector2d& observation,
         const Eigen::Vector3d& point_3d, const Eigen::Matrix<double, 5, 1>& d,
-        const Eigen::Matrix3d& K, size_t numJoints)
+        const Eigen::Matrix3d& K, const TransformationChain& chain)
     {
         auto cost_function = new ceres::DynamicAutoDiffCostFunction<KinematicChainRepError, 4>(
-            new KinematicChainRepError(observation, point_3d, d, K, numJoints));
-        for (size_t i = 0; i < numJoints; i++)
-        {
-            cost_function->AddParameterBlock(3);
-            cost_function->AddParameterBlock(4);
-            cost_function->AddParameterBlock(1);
-            cost_function->AddParameterBlock(1);
-        }
-        cost_function->AddParameterBlock(3);
-        cost_function->AddParameterBlock(4);
+            new KinematicChainRepError(observation, point_3d, d, K, chain));
+        chain.addParametersToCostFn(cost_function);
         cost_function->SetNumResiduals(2);
         return cost_function;
     }
 
     OpenCVReprojectionError repError;
     Eigen::Vector3d point_3d;
-    size_t numJoints;
+    TransformationChain chain;
 };
 
 struct KinematicChainPoseError
 {
     KinematicChainPoseError(
-        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
+        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, const TransformationChain& chain)
         : expected_world_to_cam(expected_world_to_cam)
-        , numJoints(numJoints)
+        , chain(chain)
     {
     }
 
     template <typename T> bool operator()(T const* const* parameters, T* residuals) const
     {
-
-        const auto parent_to_cam = cmakePose<T>(
-            eMap3(parameters[4 * numJoints + 0]), eMap4(parameters[4 * numJoints + 1]));
-
-        auto world_to_cam = parent_to_cam;
-        for (int i = numJoints - 1; i >= 0; i--)
-        {
-            const auto rotaxis_to_parent
-                = cmakePose<T>(eMap3(parameters[i * 4 + 0]), eMap4(parameters[i * 4 + 1]));
-            const T jointScale = *parameters[4 * i + 3];
-            const T angle = *parameters[i * 4 + 2] * jointScale;
-            Eigen::Matrix<T, 7, 1> invRot;
-            invRot << T(0), T(0), T(0), cos(-angle / T(2)), T(0), T(0), sin(-angle / T(2));
-
-            world_to_cam = cposeAdd(world_to_cam, cposeAdd(invRot, rotaxis_to_parent));
-        }
-
+        const auto world_to_cam = chain.endEffectorPose<T>(parameters);
         eMap6(&residuals[0]) = cposeManifoldMinus<T>(world_to_cam, expected_world_to_cam.cast<T>());
         // eMap3(&residuals[3])*=T(1000);
         return true;
@@ -143,25 +179,17 @@ struct KinematicChainPoseError
     // Factory to hide the construction of the CostFunction object from
     // the client code.
     static ceres::CostFunction* Create(
-        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, size_t numJoints)
+        const Eigen::Matrix<double, 7, 1>& expected_world_to_cam, const TransformationChain& chain)
     {
         auto cost_function = new ceres::DynamicAutoDiffCostFunction<KinematicChainPoseError, 4>(
-            new KinematicChainPoseError(expected_world_to_cam, numJoints));
-        for (size_t i = 0; i < numJoints; i++)
-        {
-            cost_function->AddParameterBlock(3);
-            cost_function->AddParameterBlock(4);
-            cost_function->AddParameterBlock(1);
-            cost_function->AddParameterBlock(1);
-        }
-        cost_function->AddParameterBlock(3);
-        cost_function->AddParameterBlock(4);
+            new KinematicChainPoseError(expected_world_to_cam, chain));
+        chain.addParametersToCostFn(cost_function);
         cost_function->SetNumResiduals(6);
         return cost_function;
     }
 
     Eigen::Matrix<double, 7, 1> expected_world_to_cam;
-    size_t numJoints;
+    TransformationChain chain;
 };
 
 
@@ -360,20 +388,24 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
             // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
             // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
+            TransformationChain chain;
+
             constexpr bool robustify = false;
-            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, upTojointIndex);
             std::vector<double*> parameter_blocks;
             for (size_t j = 0; j < upTojointIndex; j++)
             {
+                chain.add1DOFJoint();
                 const size_t dj = indexToDistinctJoint[i][j];
                 parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
                 parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
                 parameter_blocks.push_back(&joint_positions[j][dj]);
                 parameter_blocks.push_back(&jointData[j].ticks_to_rad);
             }
+            chain.addPose();
             const size_t dl = indexToDistinctLever[i];
             parameter_blocks.push_back(&camPoses[dl](0));
             parameter_blocks.push_back(&camPoses[dl](3));
+            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
             problem_simple.AddResidualBlock(simpleCostFn,
                 robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
                 parameter_blocks);
@@ -395,7 +427,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
                     // }
 
                     auto fullCostFn = KinematicChainRepError::Create(
-                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), upTojointIndex);
+                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), chain);
                     problem_full.AddResidualBlock(fullCostFn,
                         robustify ? new ceres::HuberLoss(1.0)
                                   : nullptr, // new ceres::CauchyLoss(3),
@@ -640,7 +672,7 @@ void Calibrator::calibrate()
     for (size_t j = 0; j < calib_data.joints.size(); j++)
     {
         std::cout << "Optimizing joint: " << calib_data.joints[j].name << std::endl;
-        optimizeUpToJoint(j+1);
+        optimizeUpToJoint(j + 1);
         // continue;
         // return;
     }
