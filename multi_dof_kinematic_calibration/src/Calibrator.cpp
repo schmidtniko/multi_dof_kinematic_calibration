@@ -166,6 +166,10 @@ struct KinematicChainPoseError
 
 
 //-----------------------------------------------------------------------------
+Calibrator::Calibrator(CalibrationData calib_data) : calib_data(calib_data)
+{
+}
+//-----------------------------------------------------------------------------
 void Calibrator::optimizeJoint(size_t jointIndex)
 {
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
@@ -603,14 +607,8 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
-void Calibrator::processFolder(const std::string& folder)
+void Calibrator::calibrate()
 {
-    // Read Calibration Data
-    {
-        calib_data = CalibrationData(folder + "/calibration_data.json");
-        std::cout << "Read Calibration Data!" << std::endl;
-    }
-
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
         for (const auto& id_to_cam_model : calib_data.cameraModelById)

@@ -10,11 +10,12 @@ namespace multi_dof_kinematic_calibration
 {
 struct Calibrator
 {
-    void processFolder(const std::string& folder);
+	Calibrator(CalibrationData calib_data);
+	
+    void calibrate();
 
     void optimizeJoint(size_t jointIndex);
 
-    // Pan Tilt data
     CalibrationData calib_data;
 
     bool computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,
