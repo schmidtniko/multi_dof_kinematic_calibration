@@ -166,7 +166,8 @@ struct KinematicChainPoseError
 
 
 //-----------------------------------------------------------------------------
-Calibrator::Calibrator(CalibrationData calib_data) : calib_data(calib_data)
+Calibrator::Calibrator(CalibrationData calib_data)
+    : calib_data(calib_data)
 {
 }
 //-----------------------------------------------------------------------------
@@ -352,63 +353,68 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         // std::cout << "LeverGroupSize: " << distinctFrequencies[indexToDistinctLever[i]]  <<
         // std::endl;
 
-        const int camera_id = 1; // TODO!!!!!!!! SCHLEIFE
-
-
-        Eigen::Matrix<double, 7, 1> world_to_cam = reconstructedPoses[std::make_pair(i, camera_id)];
-        // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
-        // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
-
-        constexpr bool robustify = false;
-        auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, jointIndex + 1);
-        std::vector<double*> parameter_blocks;
-        for (size_t j = 0; j < jointIndex + 1; j++)
+        for (const auto& id_to_cam_model : calib_data.cameraModelById)
         {
-            const size_t dj = indexToDistinctJoint[i][j];
-            parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
-            parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
-            parameter_blocks.push_back(&joint_positions[j][dj]);
-            parameter_blocks.push_back(&jointData[j].ticks_to_rad);
-        }
-        const size_t dl = indexToDistinctLever[i];
-        parameter_blocks.push_back(&camPoses[dl](0));
-        parameter_blocks.push_back(&camPoses[dl](3));
-        problem_simple.AddResidualBlock(simpleCostFn,
-            robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
-            parameter_blocks);
+            const int camera_id = id_to_cam_model.first;
+            const auto& cam_model = id_to_cam_model.second;
+            if (camera_id != 1)
+                continue;
 
 
-        const visual_marker_mapping::CameraModel& camModel = calib_data.cameraModelById[camera_id];
+            const Eigen::Matrix<double, 7, 1> world_to_cam
+                = reconstructedPoses[std::make_pair(i, camera_id)];
+            // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
+            // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
-        const auto& camera_observations
-            = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
-        const auto& world_points = calib_data.reconstructed_map_points;
-        iterateMatches(camera_observations, world_points,
-            [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
+            constexpr bool robustify = false;
+            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, jointIndex + 1);
+            std::vector<double*> parameter_blocks;
+            for (size_t j = 0; j < jointIndex + 1; j++)
             {
-                // check origin pose
-                // {
-                //     OpenCVReprojectionError repErr(tagObs.corners[c],
-                //     camModel.distortionCoefficients,camModel.getK());
-                //     repErr.print=true;
-                //     double res[2];
-                //     repErr(&world_to_cam(0), &world_to_cam(3), &tagCorners[c](0), res);
-                //     std::cout << "ERR: " << sqrt(res[0]*res[0]+res[1]*res[1]) << std::endl;
-                // }
+                const size_t dj = indexToDistinctJoint[i][j];
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
+                parameter_blocks.push_back(&joint_positions[j][dj]);
+                parameter_blocks.push_back(&jointData[j].ticks_to_rad);
+            }
+            const size_t dl = indexToDistinctLever[i];
+            parameter_blocks.push_back(&camPoses[dl](0));
+            parameter_blocks.push_back(&camPoses[dl](3));
+            problem_simple.AddResidualBlock(simpleCostFn,
+                robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
+                parameter_blocks);
 
-                auto fullCostFn = KinematicChainRepError::Create(
-                    cp, wp, camModel.distortionCoefficients, camModel.getK(), jointIndex + 1);
-                problem_full.AddResidualBlock(fullCostFn,
-                    robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
-                    parameter_blocks);
+            const auto& camera_observations
+                = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
+            const auto& world_points = calib_data.reconstructed_map_points;
+            iterateMatches(camera_observations, world_points,
+                [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
+                {
+                    // check origin pose
+                    // {
+                    //     OpenCVReprojectionError repErr(tagObs.corners[c],
+                    //     camModel.distortionCoefficients,camModel.getK());
+                    //     repErr.print=true;
+                    //     double res[2];
+                    //     repErr(&world_to_cam(0), &world_to_cam(3), &tagCorners[c](0), res);
+                    //     std::cout << "ERR: " << sqrt(res[0]*res[0]+res[1]*res[1]) << std::endl;
+                    // }
 
-                repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
-                    {
-                        Eigen::Vector2d err;
-                        fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
-                        return err.squaredNorm();
-                    });
-            });
+                    auto fullCostFn = KinematicChainRepError::Create(
+                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), jointIndex + 1);
+                    problem_full.AddResidualBlock(fullCostFn,
+                        robustify ? new ceres::HuberLoss(1.0)
+                                  : nullptr, // new ceres::CauchyLoss(3),
+                        parameter_blocks);
+
+                    repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
+                        {
+                            Eigen::Vector2d err;
+                            fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                            return err.squaredNorm();
+                        });
+                });
+        }
     }
     std::cout << "Done creating problems..." << std::endl;
 
