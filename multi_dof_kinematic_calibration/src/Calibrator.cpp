@@ -210,8 +210,8 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     size_t numc = 0;
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-            continue;
+        //        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
+        //            continue;
 
         const std::vector<int>& jointConfig = calib_data.calib_frames[i].joint_config;
 
@@ -271,7 +271,7 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         {
             // one camera pose for each distinct lever config
             std::vector<int> leverConfig(jointConfig.begin() + jointIndex + 1, jointConfig.end());
-            leverConfig.push_back(calib_data.calib_frames[i].camera_id);
+            // leverConfig.push_back(calib_data.calib_frames[i].camera_id);
 
             const auto it = distinctLeverPositions.find(leverConfig);
             if (it == distinctLeverPositions.end())
@@ -317,8 +317,6 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
         const CalibrationFrame& curJointData = calib_data.calib_frames[i];
-        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-            continue;
 
         // only accept lever groups with at least 2 calibration frames
         if (distinctFrequencies[indexToDistinctLever[i]] < 2)
@@ -329,9 +327,10 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         // std::cout << "LeverGroupSize: " << distinctFrequencies[indexToDistinctLever[i]]  <<
         // std::endl;
 
-        Eigen::Matrix<double, 7, 1> world_to_cam;
-        world_to_cam.segment<3>(0) = reconstructedPoses[i].t;
-        world_to_cam.segment<4>(3) = reconstructedPoses[i].q;
+        const int camera_id = 1; // TODO!!!!!!!! SCHLEIFE
+
+
+        Eigen::Matrix<double, 7, 1> world_to_cam=reconstructedPoses[std::make_pair(i, camera_id)];
         // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
         // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
@@ -353,10 +352,10 @@ void Calibrator::optimizeJoint(size_t jointIndex)
             robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
             parameter_blocks);
 
-        const visual_marker_mapping::CameraModel& camModel
-            = calib_data.cameraModelById[curJointData.camera_id];
 
-        const auto& marker_observations = curJointData.marker_observations;
+        const visual_marker_mapping::CameraModel& camModel = calib_data.cameraModelById[camera_id];
+
+        const auto& marker_observations = curJointData.marker_observations.find(camera_id)->second;
         for (const auto& tagObs : marker_observations)
         {
             const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);
@@ -469,8 +468,8 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     cameraPose = camPoses[0];
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-            continue;
+        //        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
+        //            continue;
 
         const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
@@ -532,9 +531,6 @@ void Calibrator::optimizeJoint(size_t jointIndex)
         numc = 0;
         for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
         {
-            if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-                continue;
-
             const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
             for (size_t j = 0; j < jointIndex + 1; j++)
@@ -604,23 +600,27 @@ void Calibrator::processFolder(const std::string& folder)
 
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        const CalibrationFrame& curJointInfo = calib_data.calib_frames[i];
-        //        const visual_marker_mapping::CameraModel& camModel
-        //            = ptuData.cameraModelById[ptuData.ptuImagePoses[i].cameraId];
-        const visual_marker_mapping::CameraModel& camModel
-            = calib_data.cameraModelById[curJointInfo.camera_id];
+        for (const auto& id_to_cam_model : calib_data.cameraModelById)
+        {
+            const size_t camera_id = id_to_cam_model.first;
+            const auto& cam_model = id_to_cam_model.second;
 
-        Eigen::Quaterniond q;
-        Eigen::Vector3d t;
-        computeRelativeCameraPoseFromImg(i, camModel.getK(), camModel.distortionCoefficients, q, t);
+            Eigen::Quaterniond q;
+            Eigen::Vector3d t;
+            computeRelativeCameraPoseFromImg(
+                camera_id, i, cam_model.getK(), cam_model.distortionCoefficients, q, t);
+			
+						
+			const auto cam_pose=cmakePose<double>(t,q);
 
-        DebugVis dbg;
-        dbg.cam.setQuat(q);
-        dbg.cam.t = t;
-        //      if (ptuData.ptuImagePoses[i].cameraId==0)
-        //        debugVis.push_back(dbg);
+            DebugVis dbg;
+            dbg.cam.setQuat(q);
+            dbg.cam.t = t;
+            //      if (ptuData.ptuImagePoses[i].cameraId==0)
+            //        debugVis.push_back(dbg);
 
-        reconstructedPoses[i] = dbg.cam;
+            reconstructedPoses[std::make_pair(i, camera_id)] = cam_pose;
+        }
     }
 
     jointData.resize(calib_data.joints.size());
@@ -638,7 +638,7 @@ void Calibrator::processFolder(const std::string& folder)
     }
 }
 //-----------------------------------------------------------------------------
-bool Calibrator::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
+bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,
     const Eigen::Matrix3d& K, const Eigen::Matrix<double, 5, 1>& distCoefficients,
     Eigen::Quaterniond& q, Eigen::Vector3d& t)
 {
@@ -646,7 +646,7 @@ bool Calibrator::computeRelativeCameraPoseFromImg(size_t calibration_frame_id,
     std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > observations2D;
     // find all matches between this image and the reconstructions
     const auto& marker_observations
-        = calib_data.calib_frames[calibration_frame_id].marker_observations;
+        = calib_data.calib_frames[calibration_frame_id].marker_observations[camera_id];
     for (const auto& tagObs : marker_observations)
     {
         const auto tagIt = calib_data.reconstructed_tags.find(tagObs.tagId);

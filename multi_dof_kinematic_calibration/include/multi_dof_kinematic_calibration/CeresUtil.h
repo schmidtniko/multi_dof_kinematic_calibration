@@ -69,6 +69,14 @@ Eigen::Matrix<T, 7, 1> cmakePose(const Eigen::Matrix<T, 3, 1>& xyz, const Eigen:
 }
 
 template <typename T>
+Eigen::Matrix<T, 7, 1> cmakePose(const Eigen::Matrix<T, 3, 1>& xyz, const Eigen::Quaternion<T>& q)
+{
+    Eigen::Matrix<T, 7, 1> ret;
+    ret << xyz(0), xyz(1), xyz(2), q.w(), q.x(), q.y(), q.z();
+    return ret;
+}
+
+template <typename T>
 Eigen::Matrix<T, 7, 1> cposeAdd(const Eigen::Matrix<T, 7, 1>& a, const Eigen::Matrix<T, 7, 1>& b)
 {
     Eigen::Matrix<T, 7, 1> ret;

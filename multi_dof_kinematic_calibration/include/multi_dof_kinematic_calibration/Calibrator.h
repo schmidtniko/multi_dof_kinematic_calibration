@@ -17,16 +17,17 @@ struct Calibrator
     // Pan Tilt data
     CalibrationData calib_data;
 
-    bool computeRelativeCameraPoseFromImg(size_t calibration_frame_id, const Eigen::Matrix3d& K,
-        const Eigen::Matrix<double, 5, 1>& distCoefficients, Eigen::Quaterniond& q,
-        Eigen::Vector3d& t);
+    bool computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,
+        const Eigen::Matrix3d& K, const Eigen::Matrix<double, 5, 1>& distCoefficients,
+        Eigen::Quaterniond& q, Eigen::Vector3d& t);
 
     void exportCalibrationResults(const std::string& filePath) const;
 
 
     /////////
 
-    std::map<size_t, visual_marker_mapping::Camera> reconstructedPoses;
+    // frame, camera -> camera model
+    std::map<std::pair<size_t, size_t>, Eigen::Matrix<double,7,1> > reconstructedPoses;
 
     //////////
 

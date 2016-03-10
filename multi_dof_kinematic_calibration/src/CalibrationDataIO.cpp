@@ -73,24 +73,76 @@ CalibrationData::CalibrationData(const std::string& filePath)
         std::cout << "Read marker detections for camera " << camera_id << "!" << std::endl;
     }
 
+    //	std::ofstream conv("conv.txt");
     for (const auto& ptuPoseNode : rootNode.get_child("calibration_frames"))
     {
         CalibrationFrame ptuInfo;
-        boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>("image_path");
-        if (image_path.is_relative())
-            image_path = boost::filesystem::path(filePath).parent_path() / image_path;
 
-        ptuInfo.image_path = image_path.string();
-        ptuInfo.camera_id = ptuPoseNode.second.get<int>("camera_id");
-
-        for (const JointInfo& jointInfo : joints)
+        for (const auto& id_to_cam_model : cameraModelById)
         {
-            pt::ptree jointPt = ptuPoseNode.second.get_child(jointInfo.name);
-            const int ticks = jointPt.get<int>("ticks");
+            const int camera_id = id_to_cam_model.first;
+            char buffer[256];
+            sprintf(buffer, "camera_image_path_%d", camera_id);
+            boost::filesystem::path image_path = ptuPoseNode.second.get<std::string>(buffer);
+            // auto origim = image_path;
+            if (image_path.is_relative())
+                image_path = boost::filesystem::path(filePath).parent_path() / image_path;
+            std::cout << image_path.string() << std::endl;
+
+            // TODO: Detektionen einlesen, struct befuellen
+            // Achtung: Calibration frame jetz pro bildpaar
+
+            // find marker observations for this calibration frame
+            int detectedImageId = -1;
+            for (size_t j = 0; j < detectionResultsByCamId[camera_id].images.size(); j++)
+            {
+                // this is a hack and should really be ==...
+                if (image_path.filename() == detectionResultsByCamId[camera_id].images[j].filename)
+                {
+                    detectedImageId = static_cast<int>(j);
+                    break;
+                }
+            }
+            for (const auto& tagObs : detectionResultsByCamId[camera_id].tagObservations)
+            {
+                if (tagObs.imageId != detectedImageId)
+                    continue;
+                ptuInfo.marker_observations[camera_id].push_back(tagObs);
+                ptuInfo.marker_observations[camera_id].back().imageId = -1;
+            }
+        }
+
+        // ptuInfo.image_path = image_path.string();
+        // ptuInfo.camera_id = ptuPoseNode.second.get<int>("camera_id");
+
+        for (size_t j = 0; j < joints.size(); j++)
+        {
+            char buffer[256];
+            sprintf(buffer, "joint_ticks_%d", j);
+            const int ticks = ptuPoseNode.second.get<int>(buffer);
             ptuInfo.joint_config.push_back(ticks);
         }
 
+//		if (ptuInfo.camera_id==0)
+//		{
+//			conv << "{\n";
+//			conv << "\"location_id\": 0," << std::endl;
+//			conv << "\"camera_image_path_0\": \"" << origim.string() << "\"," << std::endl;
+//			std::string tmp=origim.string();
+//			tmp[3]='1';
+//			conv << "\"camera_image_path_1\": \"" << tmp << "\"," << std::endl;
+//			conv << "\"joint_ticks_0\": \"" << ptuPoseNode.second.get<int>("joint_0.ticks") << "\","
+//<<
+// std::endl;
+//			conv << "\"joint_ticks_1\": \"" << ptuPoseNode.second.get<int>("joint_1.ticks") << "\","
+//<<
+// std::endl;
+//			conv << "},\n";
+//		}
 
+// ptuInfo.cameraIdToObservations
+
+#if 0
         // find marker observations for this calibration frame
         int detectedImageId = -1;
         for (size_t j = 0; j < detectionResultsByCamId[ptuInfo.camera_id].images.size(); j++)
@@ -110,7 +162,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
             ptuInfo.marker_observations.push_back(tagObs);
             ptuInfo.marker_observations.back().imageId = -1;
         }
-
+#endif
 
         calib_frames.emplace_back(std::move(ptuInfo));
     }
