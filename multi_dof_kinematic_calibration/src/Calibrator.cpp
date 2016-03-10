@@ -143,8 +143,6 @@ struct KinematicChainPoseError
 //-----------------------------------------------------------------------------
 void Calibrator::optimizeJoint(size_t jointIndex)
 {
-    const std::set<int> onlyCamIds = { 1 };
-
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
         return cposeInv<double>(pose);
@@ -468,9 +466,6 @@ void Calibrator::optimizeJoint(size_t jointIndex)
     cameraPose = camPoses[0];
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        //        if (!onlyCamIds.count(calib_data.calib_frames[i].camera_id))
-        //            continue;
-
         const auto& jointConfig = calib_data.calib_frames[i].joint_config;
 
         Eigen::Matrix<double, 7, 1> root;
