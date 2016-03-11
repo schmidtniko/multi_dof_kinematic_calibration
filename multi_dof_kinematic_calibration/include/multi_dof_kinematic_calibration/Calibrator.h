@@ -14,7 +14,7 @@ struct Calibrator
 	
     void calibrate();
 
-    void optimizeUpToJoint(size_t upTojointIndex);
+    void optimizeUpToJoint(size_t upTojointIndex, bool fullOpt);
 
     CalibrationData calib_data;
 

@@ -199,7 +199,7 @@ Calibrator::Calibrator(CalibrationData calib_data)
 {
 }
 //-----------------------------------------------------------------------------
-void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
+void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
 {
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -229,7 +229,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
         return joint_list;
     };
 
-    const std::vector<size_t> parent_joints
+    std::vector<size_t> parent_joints
         = pathFromRootToJoint(calib_data.joints[upTojointIndex].name);
     std::set<size_t> descendant_joints;
 
@@ -251,6 +251,15 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
             }
         }
     }
+	if (fullOpt)
+	{
+		parent_joints.clear();
+		for (int i=0;i<calib_data.joints.size();i++)
+			parent_joints.push_back(i);
+		descendant_joints.clear();
+	}
+	
+	std::cout << "Descendants: " << descendant_joints.size() << std::endl;
 
 //    	std::cout << "Up To Index " << upTojointIndex << std::endl;
 
@@ -321,10 +330,10 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
 
 
             // hack
-            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(0));
-            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(3));
-            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(0));
-            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(3));
+//            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(0));
+//            problem_simple.SetParameterBlockConstant(&joint_to_parent_pose(3));
+//            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(0));
+//            problem_full.SetParameterBlockConstant(&joint_to_parent_pose(3));
         }
     }
 
@@ -423,6 +432,9 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
             }
 #endif
         }
+		if (descendant_joints.empty())
+			continue;
+		
         {
             // one camera pose for each distinct lever config
             std::vector<int> leverConfig;//(jointConfig.begin() + upTojointIndex, jointConfig.end());
@@ -447,6 +459,8 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
                 // for (auto i : leverConfig)
                 //     std::cout << i << " , ";
                 // std::cout << std::endl;
+				
+				std::cout << "Insert CP " << std::endl;
 
                 camPoses[distinct_lever_index] << 0, 0, 0, 1, 0, 0, 0;
                 problem_simple.AddParameterBlock(&camPoses[distinct_lever_index](0), 3);
@@ -468,6 +482,8 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
             }
         }
     }
+	
+	std::cout << "num camposes: " << camPoses.size() << std::endl;
 
 
     std::vector<std::function<double()> > repErrorFns;
@@ -480,7 +496,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
         if (distinctFrequencies[indexToDistinctLever[i]] < 2)
         {
             // std::cout << "Skipping" << std::endl;
-            continue;
+            ///////////////////continue; ///hack
         }
         // std::cout << "LeverGroupSize: " << distinctFrequencies[indexToDistinctLever[i]]  <<
         // std::endl;
@@ -489,8 +505,8 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
         {
             const int camera_id = id_to_cam_model.first;
             const auto& cam_model = id_to_cam_model.second;
-            if (camera_id != 1)
-                continue;
+            //if (camera_id != 1)
+              //  continue;
 
 
             const Eigen::Matrix<double, 7, 1> world_to_cam
@@ -529,10 +545,13 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex)
                     parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
                 }
             }
-            chain.addPose();
-            const size_t dl = indexToDistinctLever[i];
-            parameter_blocks.push_back(&camPoses[dl](0));
-            parameter_blocks.push_back(&camPoses[dl](3));
+            if (!descendant_joints.empty())
+            {
+                chain.addPose();
+                const size_t dl = indexToDistinctLever[i];
+                parameter_blocks.push_back(&camPoses[dl](0));
+                parameter_blocks.push_back(&camPoses[dl](3));
+            }
             auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
             problem_simple.AddResidualBlock(simpleCostFn,
                 robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
@@ -1318,11 +1337,15 @@ void Calibrator::calibrate()
 	std::function<void(size_t)> optimizeJ =[&](size_t j)
 	{
 		if (calib_data.joints[j].type=="1_dof_joint")
-			optimizeUpToJoint(j);
+			optimizeUpToJoint(j,false);
 		for (auto cj : joint_to_children[j])
 			optimizeJ(cj);
 	};
 	optimizeJ(start_joint);
+	
+	std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
+	
+	optimizeUpToJoint(0,true);
 	
 	
 		
