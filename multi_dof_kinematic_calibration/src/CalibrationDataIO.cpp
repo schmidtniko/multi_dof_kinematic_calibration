@@ -45,14 +45,21 @@ CalibrationData::CalibrationData(const std::string& filePath)
             inf.ticks_to_rad = jointNode.second.get<double>("ticks_to_rad");
             inf.angular_noise_std_dev = jointNode.second.get<double>("angular_noise_std_dev");
         }
-		else if (inf.type == "pose")
-		{
-		}
-		else
-			throw std::runtime_error("Unknown joint type: " + inf.type);
+        else if (inf.type == "pose")
+        {
+			inf.ticks_to_rad = 0;
+			inf.angular_noise_std_dev = 0;
+        }
+        else
+            throw std::runtime_error("Unknown joint type: " + inf.type);
         inf.joint_to_parent_guess
             = visual_marker_mapping::propertyTree2EigenMatrix<Eigen::Matrix<double, 7, 1> >(
                 jointNode.second.get_child("joint_to_parent_pose_guess"));
+
+        inf.parent = jointNode.second.get<std::string>("parent");
+		
+        name_to_joint[inf.name] = joints.size();
+
         joints.emplace_back(std::move(inf));
     }
 
@@ -60,6 +67,10 @@ CalibrationData::CalibrationData(const std::string& filePath)
     for (const auto& cameraNode : rootNode.get_child("cameras"))
     {
         const int camera_id = cameraNode.second.get<int>("camera_id");
+
+        cam_id_to_parent_joint[camera_id] = cameraNode.second.get<std::string>("parent_joint");
+
+
         boost::filesystem::path camera_path = cameraNode.second.get<std::string>("camera_path");
 
         if (camera_path.is_relative())
@@ -133,15 +144,15 @@ CalibrationData::CalibrationData(const std::string& filePath)
 
         for (size_t j = 0; j < joints.size(); j++)
         {
-			if (joints[j].type == "1_dof_joint")
-	        {
-				char buffer[256];
-				sprintf(buffer, "joint_ticks_%d", j);
-				const int ticks = calib_frame_node.second.get<int>(buffer);
-				calib_frame.joint_config.push_back(ticks);
-			}
-			else
-				calib_frame.joint_config.push_back(0);
+            if (joints[j].type == "1_dof_joint")
+            {
+                char buffer[256];
+                sprintf(buffer, "%s_ticks", joints[j].name.c_str());
+                const int ticks = calib_frame_node.second.get<int>(buffer);
+                calib_frame.joint_config.push_back(ticks);
+            }
+            else
+                calib_frame.joint_config.push_back(0);
         }
 
 //		if (ptuInfo.camera_id==0)

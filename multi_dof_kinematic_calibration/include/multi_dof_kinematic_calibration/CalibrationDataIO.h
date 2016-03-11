@@ -18,6 +18,8 @@ struct JointInfo
     double ticks_to_rad; // ticks * ticks_to_rad = rad
     double angular_noise_std_dev;
 	
+	std::string parent;
+	
 	Eigen::Matrix<double,7,1> joint_to_parent_guess; 
 };
 struct CalibrationFrame
@@ -38,6 +40,10 @@ struct CalibrationData
 
     std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
+	
+	std::map<std::string, size_t> name_to_joint;
+	
+	std::map<int, std::string> cam_id_to_parent_joint;
 	
 	std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
 };
