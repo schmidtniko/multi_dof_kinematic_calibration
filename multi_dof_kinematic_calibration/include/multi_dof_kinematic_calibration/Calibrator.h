@@ -48,7 +48,7 @@ struct Calibrator
         double ticks_to_rad;
     };
 
-    Eigen::Matrix<double, 7, 1> cameraPose;
+    //Eigen::Matrix<double, 7, 1> cameraPose;
 
     std::vector<JointData> jointData;
 	

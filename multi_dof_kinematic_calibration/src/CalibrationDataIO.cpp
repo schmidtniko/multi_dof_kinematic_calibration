@@ -47,8 +47,8 @@ CalibrationData::CalibrationData(const std::string& filePath)
         }
         else if (inf.type == "pose")
         {
-			inf.ticks_to_rad = 0;
-			inf.angular_noise_std_dev = 0;
+            inf.ticks_to_rad = 0;
+            inf.angular_noise_std_dev = 0;
         }
         else
             throw std::runtime_error("Unknown joint type: " + inf.type);
@@ -57,7 +57,13 @@ CalibrationData::CalibrationData(const std::string& filePath)
                 jointNode.second.get_child("joint_to_parent_pose_guess"));
 
         inf.parent = jointNode.second.get<std::string>("parent");
-		
+
+        const auto fix = jointNode.second.get_optional<std::string>("fixed");
+        if (fix)
+            inf.fixed = (*fix == "true");
+        else
+            inf.fixed = false;
+
         name_to_joint[inf.name] = joints.size();
 
         joints.emplace_back(std::move(inf));

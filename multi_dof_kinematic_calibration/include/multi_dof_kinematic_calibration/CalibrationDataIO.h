@@ -21,6 +21,8 @@ struct JointInfo
 	std::string parent;
 	
 	Eigen::Matrix<double,7,1> joint_to_parent_guess; 
+	
+	bool fixed;
 };
 struct CalibrationFrame
 {
