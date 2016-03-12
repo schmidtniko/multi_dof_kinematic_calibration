@@ -236,7 +236,6 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
 
     bool descendants_contain_1DOF_joint = false;
 
-    // std::vector<int> relevant_cameras;
     {
         for (const auto& cam_id_to_parent_joint : calib_data.cam_id_to_parent_joint)
         {
@@ -244,7 +243,6 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
             if (std::find(path_to_cam.begin(), path_to_cam.end(), upTojointIndex)
                 != path_to_cam.end())
             {
-                //                relevant_cameras.push_back(cam_id_to_parent_joint.first);
                 for (auto it = path_to_cam.rbegin(); it != path_to_cam.rend(); ++it)
                 {
                     if (*it == upTojointIndex)
@@ -265,23 +263,6 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
     }
 
     std::cout << "Descendants: " << descendant_joints.size() << std::endl;
-
-    //    	std::cout << "Up To Index " << upTojointIndex << std::endl;
-
-    //    	std::cout << "parent joints: " << std::endl;
-    //    	for (auto s : parent_joints)
-    //    	{
-    //    		std::cout << s << std::endl;
-    //    	}
-
-    //    	std::cout << "descendant joints: " << std::endl;
-    //    	for (auto s : descendant_joints)
-    //    	{
-    //    		std::cout << s << std::endl;
-    //    	}
-
-    //    	exit(0);
-
 
     ceres::Problem problem_simple;
     ceres::Problem problem_full;
@@ -535,9 +516,6 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
         {
             const int camera_id = id_to_cam_model.first;
             const auto& cam_model = id_to_cam_model.second;
-            // if (camera_id != 1)
-            //  continue;
-
 
             const Eigen::Matrix<double, 7, 1> world_to_cam
                 = reconstructedPoses[std::make_pair(i, camera_id)];
@@ -558,19 +536,8 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
                 parameter_blocks.push_back(&location(3));
             }
 
-            // std::cout << "camid: " << camera_id << std::endl;
-
             const auto path_to_cam
                 = pathFromRootToJoint(calib_data.cam_id_to_parent_joint[camera_id]);
-            //            std::cout << "P2C: ";
-            //            for (auto p : path_to_cam)
-            //                std::cout << calib_data.joints[p].name << " ";
-            //            std::cout << std::endl;
-
-            //			std::cout << "PJ : ";
-            //			for (auto p : parent_joints)
-            //				std::cout << calib_data.joints[p].name << " ";
-            //			std::cout << std::endl;
 
             constexpr bool robustify = true;
 
@@ -896,7 +863,7 @@ void Calibrator::calibrate()
 {
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        // calib_data.calib_frames[i].location_id=i; // HAAAAAAACK
+        // calib_data.calib_frames[i].location_id=i; // HACK locations setzen
         if (calib_data.calib_frames[i].location_id != -1)
         {
             location_id_to_location[calib_data.calib_frames[i].location_id] << 0, 0, 0, 1, 0, 0, 0;
@@ -930,17 +897,8 @@ void Calibrator::calibrate()
     {
         jointData[j].joint_to_parent_pose = calib_data.joints[j].joint_to_parent_guess;
         jointData[j].ticks_to_rad = calib_data.joints[j].ticks_to_rad;
+		// HACK: Joint positions hier her?
     }
-    for (size_t j = 0; j < calib_data.joints.size(); j++)
-    {
-        std::cout << "Optimizing joint: " << calib_data.joints[j].name << std::endl;
-        // optimizeUpToJoint(j);
-        // continue;
-        // return;
-    }
-    // optimizeUpToJoint(2);
-    // optimizeUpToJoint(0);
-    // optimizeUpToJoint(1);
 
     size_t start_joint = 0;
     std::vector<std::vector<size_t> > joint_to_children(calib_data.joints.size());
@@ -964,6 +922,7 @@ void Calibrator::calibrate()
     };
     optimizeJ(start_joint);
 
+	// HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
     // optimizeUpToJoint(0, true);
 }
 //-----------------------------------------------------------------------------
