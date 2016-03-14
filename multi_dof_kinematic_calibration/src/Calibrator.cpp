@@ -252,7 +252,7 @@ Calibrator::Calibrator(CalibrationData calib_data)
 {
 }
 //-----------------------------------------------------------------------------
-void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrator::OptimizationMode mode)
+void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, OptimizationMode mode)
 {
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -284,7 +284,8 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrat
         return joint_list;
     };
 
-    std::vector<size_t> parent_joints = pathFromRootToJoint(calib_data.joints[upTojointIndex].name);
+    std::set<size_t> parent_joint_set
+        = optimization_set; // pathFromRootToJoint(calib_data.joints[upTojointIndex].name);
     std::set<size_t> descendant_joints;
 
     bool descendants_contain_1DOF_joint = false;
@@ -293,12 +294,13 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrat
         for (const auto& sensor_id_to_parent_joint : calib_data.sensor_id_to_parent_joint)
         {
             auto path_to_cam = pathFromRootToJoint(sensor_id_to_parent_joint.second);
-            if (std::find(path_to_cam.begin(), path_to_cam.end(), upTojointIndex)
-                != path_to_cam.end())
+            // if (std::find(path_to_cam.begin(), path_to_cam.end(), upTojointIndex)
+            //    != path_to_cam.end())
             {
                 for (auto it = path_to_cam.rbegin(); it != path_to_cam.rend(); ++it)
                 {
-                    if (*it == upTojointIndex)
+                    // if (*it == upTojointIndex)
+                    if (parent_joint_set.count(*it))
                         break;
                     descendant_joints.insert(*it);
                     if (calib_data.joints[*it].type == "1_dof_joint")
@@ -309,11 +311,13 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrat
     }
     if (!descendants_contain_1DOF_joint)
     {
-        parent_joints.clear();
+        parent_joint_set.clear();
         for (size_t i = 0; i < calib_data.joints.size(); i++)
-            parent_joints.push_back(i);
+            parent_joint_set.insert(i);
         descendant_joints.clear();
     }
+
+    const std::vector<size_t> parent_joints(parent_joint_set.begin(), parent_joint_set.end());
 
     std::cout << "Descendants: " << descendant_joints.size() << std::endl;
 
@@ -412,7 +416,6 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrat
         {
             if (!initialized_locations.count(calib_data.calib_frames[i].location_id))
             {
-                // TODO: das darf man fuer jede location nur 1x machen!
                 auto& location = location_id_to_location[calib_data.calib_frames[i].location_id];
                 problem_simple.AddParameterBlock(&location(0), 3);
                 problem_simple.AddParameterBlock(&location(3), 4, quaternion_parameterization);
@@ -1023,9 +1026,9 @@ void Calibrator::calibrate()
 {
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        // calib_data.calib_frames[i].location_id=i; // HACK locations setzen
         if (calib_data.calib_frames[i].location_id != -1)
         {
+			// HACK: This should be configurable
             location_id_to_location[calib_data.calib_frames[i].location_id] << 0, 0, 0, 1, 0, 0, 0;
         }
 
@@ -1073,21 +1076,71 @@ void Calibrator::calibrate()
         joint_to_children[parent_j].push_back(j);
     }
 
-    std::function<void(size_t)> optimizeJ = [&](size_t j)
-    {
-        if (calib_data.joints[j].type == "1_dof_joint")
-            optimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
-        for (auto cj : joint_to_children[j])
-            optimizeJ(cj);
-    };
-    optimizeJ(start_joint);
+    //    std::function<void(size_t)> optimizeJ = [&](size_t j)
+    //    {
+    //        if (calib_data.joints[j].type == "1_dof_joint")
+    //            optimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
+    //        for (auto cj : joint_to_children[j])
+    //            optimizeJ(cj);
+    //    };
+    //    optimizeJ(start_joint);
 
-    // HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
-    optimizeUpToJoint(0, true, OptimizationMode::ONLY_SIMPLE);
-    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
-    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
-    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
-	optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
+
+    std::set<size_t> frontier;
+    frontier.insert(start_joint);
+
+    std::set<size_t> optimization_set;
+    optimization_set.insert(start_joint);
+    while (!frontier.empty())
+    {
+        std::function<void(size_t, bool)> expandToNext1DofJoint = [&](size_t j, bool first)
+        {
+            optimization_set.insert(j);
+            if ((calib_data.joints[j].type == "1_dof_joint") && (!first))
+            {
+                // ptimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
+                frontier.insert(j);
+                return;
+            }
+            for (auto cj : joint_to_children[j])
+                expandToNext1DofJoint(cj, false);
+        };
+        auto tmp_frontier = frontier;
+        frontier.clear();
+        for (size_t f : tmp_frontier)
+            expandToNext1DofJoint(f, true);
+
+
+        //        std::cout << "Optimization Set: " << std::endl;
+        //        for (auto o : optimization_set)
+        //            std::cout << calib_data.joints[o].name << ", ";
+        //        std::cout << std::endl;
+        //        std::cout << "Frontier Set: " << std::endl;
+        //        for (auto o : frontier)
+        //            std::cout << calib_data.joints[o].name << ", ";
+        //        std::cout << std::endl;
+
+
+        std::cout << "-------------------------------------------------------------------------"
+                  << std::endl;
+        // std::cout << "Optim Simple" << std::endl;
+        optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_SIMPLE);
+        // std::cout << "Optim Full" << std::endl;
+        optimizeUpToJoint(optimization_set, OptimizationMode::SIMPLE_THEN_FULL);
+        std::cout << "-------------------------------------------------------------------------"
+                  << std::endl;
+    }
+    // when there are laser sensors, iterate the final optimization a couple of times so that the
+    // correspondences can improve
+    if (!calib_data.laser_sensor_ids.empty())
+    {
+        for (int its = 0; its < 5; its++)
+        {
+            optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
+        }
+        std::cout << "-------------------------------------------------------------------------"
+                  << std::endl;
+    }
 }
 //-----------------------------------------------------------------------------
 bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,

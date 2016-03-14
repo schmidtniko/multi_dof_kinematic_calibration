@@ -22,7 +22,7 @@ struct Calibrator
 		ONLY_FULL
 	};
 
-    void optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, OptimizationMode mode);
+    void optimizeUpToJoint(const std::set<size_t>& optimization_set, OptimizationMode mode);
 
     CalibrationData calib_data;
 
