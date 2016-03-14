@@ -106,6 +106,27 @@ unzip ptu_d47_w_asus_xtion_ir.zip
 ./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
 
+### Output:
+
+```
+Solving full optimization problem...
+    Full optimization returned termination type 0
+    Full training reprojection error RMS: 0.815625 px
+Solving full optimization problem...done!
+
+Resulting Parameters:
+    Tick2Rad for all joints:
+        joint_0:0.000895964, joint_1:0.000918792, 
+    Joint poses:
+        joint_0:     1.10333           0           0    0.781601  0.00769075 -0.00254335   -0.623726
+        joint_1:  -1.29697         0         0  -0.43817  0.557305 -0.439311  0.551747
+        cam_joint_1:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
+Test Reprojection Error RMS: 2.50235 px
+Test Reprojection Error RMS for camera 1: 2.50235 px
+```
+
+TODO
+
 If you want to visualize the results, simply run:
 ```
 python3 visualize_reconstruction.py calibration_room1/reconstruction.json
