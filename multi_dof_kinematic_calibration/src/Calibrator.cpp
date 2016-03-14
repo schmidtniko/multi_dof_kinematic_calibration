@@ -928,7 +928,7 @@ void Calibrator::calibrate()
     optimizeJ(start_joint);
 
     // HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
-    // optimizeUpToJoint(0, true);
+    optimizeUpToJoint(0, true);
 }
 //-----------------------------------------------------------------------------
 bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,

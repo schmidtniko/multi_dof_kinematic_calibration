@@ -9,6 +9,47 @@
 #include "visual_marker_mapping/CameraUtilities.h"
 #include "visual_marker_mapping/ReconstructionIO.h"
 
+namespace
+{
+multi_dof_kinematic_calibration::Scan3D loadScan(const std::string& filename)
+{
+    multi_dof_kinematic_calibration::Scan3D ret;
+    FILE* r = fopen(filename.c_str(), "rb");
+    if (!r)
+        throw std::runtime_error("Could not open " + filename);
+    int numPts;
+    fread(&numPts, sizeof(int), 1, r);
+    ret.points.resize(3, numPts);
+#if 0
+    std::vector<double> tmp(4 * numPts);
+    fread(&tmp[0], 4 * sizeof(double), numPts, r);
+    fclose(r);
+    for (int i = 0; i < numPts; i++)
+    {
+        ret.points.col(i) << tmp[4 * i], tmp[4 * i + 1], tmp[4 * i + 2];
+         std::cout << tmp[4 * i] << " " <<  tmp[4 * i+1] << " " <<  tmp[4 * i+2] << std::endl;
+    }
+#else
+    // std::ofstream tmp("out.txt");
+    for (int i = 0; i < numPts; i++)
+    {
+        char buffer[32];
+        fread(buffer, 32, 1, r);
+        const float* floats = (const float*)&buffer[0];
+        //		for (int f=0;f<8;f++)
+        //			std::cout << floats[f] << " ";
+        //		std::cout << std::endl;
+        ret.points.col(i) << floats[1], -floats[0], floats[2];
+        // std::cout << ret.points.col(i).transpose() << std::endl;
+        // tmp << ret.points.col(i).transpose() << std::endl;
+    }
+    fclose(r);
+#endif
+    return ret;
+}
+}
+
+
 namespace multi_dof_kinematic_calibration
 {
 //----------------------------------------------------------------------------
@@ -72,10 +113,12 @@ CalibrationData::CalibrationData(const std::string& filePath)
     std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
     for (const auto& cameraNode : rootNode.get_child("sensors"))
     {
+        const std::string sensor_type = cameraNode.second.get<std::string>("sensor_type");
         const int sensor_id = cameraNode.second.get<int>("sensor_id");
+        // if (sensor_type!="camera")
+        // continue;
         sensor_id_to_parent_joint.emplace(
             sensor_id, cameraNode.second.get<std::string>("parent_joint"));
-        const std::string sensor_type = cameraNode.second.get<std::string>("sensor_type");
         if (sensor_type == "camera")
         {
             const int camera_id = sensor_id;
@@ -107,6 +150,10 @@ CalibrationData::CalibrationData(const std::string& filePath)
             detectionResultsByCamId.emplace(
                 camera_id, visual_marker_mapping::readDetectionResult(marker_det_filename));
             std::cout << "Read marker detections for camera " << camera_id << "!" << std::endl;
+        }
+        else if (sensor_type == "laser_3d")
+        {
+            laser_sensor_ids.push_back(sensor_id);
         }
     }
 
@@ -148,6 +195,19 @@ CalibrationData::CalibrationData(const std::string& filePath)
                     calib_frame.cam_id_to_observations[camera_id][point_id] = tagObs.corners[c];
                 }
             }
+        }
+
+        for (int sensor_id : laser_sensor_ids)
+        {
+            char buffer[256];
+            sprintf(buffer, "scan_file_path_%d", sensor_id);
+            boost::filesystem::path scan_path = calib_frame_node.second.get<std::string>(buffer);
+            if (scan_path.is_relative())
+                scan_path = boost::filesystem::path(filePath).parent_path() / scan_path;
+
+            calib_frame.sensor_id_to_laser_scan_3d.emplace(
+                sensor_id, std::make_shared<Scan3D>(loadScan(scan_path.string())));
+            // std::cout << "Loaded: " << scan_path.string() << std::endl;
         }
 
         // ptuInfo.image_path = image_path.string();
