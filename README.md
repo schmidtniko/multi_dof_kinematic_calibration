@@ -126,7 +126,7 @@ Occurring rotations are represented as a unit quaternion in the order *w, x, y, 
 
 # Copyright and License
 
-TODO
+[GPL 3.0](http://www.gnu.org/licenses/gpl-3.0.en.html)
 
 # Citing
 
