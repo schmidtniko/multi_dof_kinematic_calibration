@@ -555,6 +555,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     std::map<int, std::vector<std::function<double()> > > repErrorFnsByCam;
 
 
+    std::cout << "Building optimization problems..." << std::endl;
+
     // curImage=0;
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
@@ -776,7 +778,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
             }
         }
     }
-    std::cout << "Done creating problems..." << std::endl;
+    std::cout << "Building optimization problems...done!" << std::endl;
 
     auto computeRMSE = [&repErrorFns]() -> double
     {
@@ -837,34 +839,39 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
     if ((mode == OptimizationMode::SIMPLE_THEN_FULL) || (mode == OptimizationMode::ONLY_SIMPLE))
     {
+        std::cout << "Solving simple optimization problem..." << std::endl;
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem_simple, &summary);
-        std::cout << "Simple Solution Optimization returned termination type "
-                  << summary.termination_type << std::endl;
+        std::cout << "    Simple optimization returned termination type " << summary.termination_type
+                  << std::endl;
         // std::cout << summary.FullReport() << std::endl;
 
-        std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << " px"
+        std::cout << "    Simple training reprojection error RMS: " << computeRMSE() << " px"
                   << std::endl;
+        std::cout << "Solving simple optimization problem...done!" << std::endl;
     }
 
 
     if ((mode == OptimizationMode::SIMPLE_THEN_FULL) || (mode == OptimizationMode::ONLY_FULL))
     {
+        std::cout << "Solving full optimization problem..." << std::endl;
         ceres::Solver::Summary summary2;
         ceres::Solve(options, &problem_full, &summary2);
-        std::cout << "Full Solution Optimization returned termination type "
-                  << summary2.termination_type << std::endl;
+        std::cout << "    Full optimization returned termination type " << summary2.termination_type
+                  << std::endl;
         // std::cout << summary2.FullReport() << std::endl;
 
-        std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << " px"
+        std::cout << "    Full training reprojection error RMS: " << computeRMSE() << " px"
                   << std::endl;
+        std::cout << "Solving full optimization problem...done!" << std::endl;
     }
 
+	std::cout << std::endl;
 
     // Print some results
     std::cout << "Resulting Parameters:" << std::endl;
 
-    std::cout << "Tick2Rad for all joints: ";
+    std::cout << "    Tick2Rad for all joints:\n        ";
     for (size_t pj = 0; pj < parent_joints.size(); pj++)
     {
         const size_t j = parent_joints[pj];
@@ -873,14 +880,13 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     }
     std::cout << std::endl;
 
-    std::cout << "Joint poses: \n";
+    std::cout << "    Joint poses:\n";
     for (size_t pj = 0; pj < parent_joints.size(); pj++)
     {
         const size_t j = parent_joints[pj];
-        std::cout << calib_data.joints[j].name << ": "
-                  << jointData[j].joint_to_parent_pose.transpose() << "\n";
+        std::cout << "        " << calib_data.joints[j].name << ": "
+                  << jointData[j].joint_to_parent_pose.transpose() << std::endl;
     }
-    std::cout << std::endl;
 
     //    std::cout << "Tempoary Poses: " << std::endl;
     //    for (size_t i = 0; i < temp_poses.size(); i++)
@@ -1115,10 +1121,10 @@ void Calibrator::calibrate()
             expandToNext1DofJoint(f, true);
 
 
-        //        std::cout << "Optimization Set: " << std::endl;
-        //        for (auto o : optimization_set)
-        //            std::cout << calib_data.joints[o].name << ", ";
-        //        std::cout << std::endl;
+        std::cout << "Estimating joints: ";
+        for (auto o : optimization_set)
+            std::cout << calib_data.joints[o].name << ", ";
+        std::cout << std::endl;
         //        std::cout << "Frontier Set: " << std::endl;
         //        for (auto o : frontier)
         //            std::cout << calib_data.joints[o].name << ", ";
@@ -1129,6 +1135,8 @@ void Calibrator::calibrate()
                   << std::endl;
         // std::cout << "Optim Simple" << std::endl;
         optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_SIMPLE);
+		std::cout << "-------------------------------------------------------------------------"
+					 << std::endl;
         // std::cout << "Optim Full" << std::endl;
         optimizeUpToJoint(optimization_set, OptimizationMode::SIMPLE_THEN_FULL);
         std::cout << "-------------------------------------------------------------------------"
@@ -1141,9 +1149,10 @@ void Calibrator::calibrate()
         for (int its = 0; its < 5; its++)
         {
             optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
+			std::cout << "-------------------------------------------------------------------------"
+	                  << std::endl;
         }
-        std::cout << "-------------------------------------------------------------------------"
-                  << std::endl;
+        
     }
 }
 //-----------------------------------------------------------------------------
