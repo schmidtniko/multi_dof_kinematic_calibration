@@ -1,5 +1,5 @@
-#ifndef CERESUTIL_H
-#define CERESUTIL_H
+#ifndef MULTI_DOF_KINEMATIC_CALIBRATION_CERESUTIL_H
+#define MULTI_DOF_KINEMATIC_CALIBRATION_CERESUTIL_H
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <fstream>
+#include "multi_dof_kinematic_calibration/DebugVis.h"
 
 template <typename Map1, typename Map2, typename F>
 void iterateMatches(const Map1& m1, const Map2& m2, F&& f)
@@ -254,13 +255,13 @@ Calibrator::Calibrator(CalibrationData calib_data)
 //-----------------------------------------------------------------------------
 void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, OptimizationMode mode)
 {
-	if (mode==OptimizationMode::SIMPLE_THEN_FULL)
-		std::cout << "Performing simple, then full optimization" << std::endl;
-	else if (mode==OptimizationMode::ONLY_SIMPLE)
-		std::cout << "Performing simple optimization only" << std::endl;
-	else if (mode==OptimizationMode::ONLY_FULL)
-		std::cout << "Performing full optimization only" << std::endl;
-	
+    if (mode == OptimizationMode::SIMPLE_THEN_FULL)
+        std::cout << "Performing simple, then full optimization" << std::endl;
+    else if (mode == OptimizationMode::ONLY_SIMPLE)
+        std::cout << "Performing simple optimization only" << std::endl;
+    else if (mode == OptimizationMode::ONLY_FULL)
+        std::cout << "Performing full optimization only" << std::endl;
+
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
         return cposeInv<double>(pose);
@@ -327,12 +328,12 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     const std::vector<size_t> parent_joints(parent_joint_set.begin(), parent_joint_set.end());
 
     if (!descendant_joints.empty())
-	{
+    {
         std::cout << "Replacing " << descendant_joints.size() << " joints with temp poses: ";
-		for (auto d : descendant_joints)
-			std::cout << calib_data.joints[d].name << ", ";
-		std::cout << std::endl;
-	}
+        for (auto d : descendant_joints)
+            std::cout << calib_data.joints[d].name << ", ";
+        std::cout << std::endl;
+    }
 
     ceres::Problem problem_simple;
     ceres::Problem problem_full;
@@ -853,8 +854,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         std::cout << "Solving simple optimization problem..." << std::endl;
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem_simple, &summary);
-        std::cout << "    Simple optimization returned termination type " << summary.termination_type
-                  << std::endl;
+        std::cout << "    Simple optimization returned termination type "
+                  << summary.termination_type << std::endl;
         // std::cout << summary.FullReport() << std::endl;
 
         std::cout << "    Simple training reprojection error RMS: " << computeRMSE() << " px"
@@ -877,7 +878,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         std::cout << "Solving full optimization problem...done!" << std::endl;
     }
 
-	std::cout << std::endl;
+    std::cout << std::endl;
 
     // Print some results
     std::cout << "Resulting Parameters:" << std::endl;
@@ -1146,8 +1147,8 @@ void Calibrator::calibrate()
                   << std::endl;
         // std::cout << "Optim Simple" << std::endl;
         optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_SIMPLE);
-		std::cout << "-------------------------------------------------------------------------"
-					 << std::endl;
+        std::cout << "-------------------------------------------------------------------------"
+                  << std::endl;
         // std::cout << "Optim Full" << std::endl;
         optimizeUpToJoint(optimization_set, OptimizationMode::SIMPLE_THEN_FULL);
         std::cout << "-------------------------------------------------------------------------"
@@ -1160,10 +1161,9 @@ void Calibrator::calibrate()
         for (int its = 0; its < 5; its++)
         {
             optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
-			std::cout << "-------------------------------------------------------------------------"
-	                  << std::endl;
+            std::cout << "-------------------------------------------------------------------------"
+                      << std::endl;
         }
-        
     }
 }
 //-----------------------------------------------------------------------------

@@ -178,15 +178,16 @@ CalibrationData::CalibrationData(const std::string& filePath)
             for (size_t j = 0; j < detectionResultsByCamId[camera_id].images.size(); j++)
             {
                 // this is a hack and should really be ==...
-//                std::cout << image_path.filename().string() << " "
-//                          << detectionResultsByCamId[camera_id].images[j].filename << std::endl;
+                //                std::cout << image_path.filename().string() << " "
+                //                          << detectionResultsByCamId[camera_id].images[j].filename
+                //                          << std::endl;
                 if (image_path.filename() == detectionResultsByCamId[camera_id].images[j].filename)
                 {
                     detectedImageId = static_cast<int>(j);
                     break;
                 }
             }
-            if (detectedImageId==-1)
+            if (detectedImageId == -1)
                 std::cout << "Error: Did not find target detections for " << image_path.string()
                           << std::endl;
             for (const auto& tagObs : detectionResultsByCamId[camera_id].tagObservations)
