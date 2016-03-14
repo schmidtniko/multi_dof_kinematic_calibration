@@ -327,8 +327,12 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     const std::vector<size_t> parent_joints(parent_joint_set.begin(), parent_joint_set.end());
 
     if (!descendant_joints.empty())
-        std::cout << "Replacing " << descendant_joints.size() << " joints with temp poses "
-                  << std::endl;
+	{
+        std::cout << "Replacing " << descendant_joints.size() << " joints with temp poses: ";
+		for (auto d : descendant_joints)
+			std::cout << calib_data.joints[d].name << ", ";
+		std::cout << std::endl;
+	}
 
     ceres::Problem problem_simple;
     ceres::Problem problem_full;
