@@ -237,9 +237,9 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
     bool descendants_contain_1DOF_joint = false;
 
     {
-        for (const auto& cam_id_to_parent_joint : calib_data.cam_id_to_parent_joint)
+        for (const auto& sensor_id_to_parent_joint : calib_data.sensor_id_to_parent_joint)
         {
-            auto path_to_cam = pathFromRootToJoint(cam_id_to_parent_joint.second);
+            auto path_to_cam = pathFromRootToJoint(sensor_id_to_parent_joint.second);
             if (std::find(path_to_cam.begin(), path_to_cam.end(), upTojointIndex)
                 != path_to_cam.end())
             {
@@ -536,16 +536,16 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
                 parameter_blocks.push_back(&location(3));
             }
 
-            const auto path_to_cam
-                = pathFromRootToJoint(calib_data.cam_id_to_parent_joint[camera_id]);
+            const auto path_to_sensor
+                = pathFromRootToJoint(calib_data.sensor_id_to_parent_joint[camera_id]);
 
             constexpr bool robustify = true;
 
             // for (size_t pj = 0; pj < parent_joints.size(); pj++)
-            for (size_t pj = 0; pj < path_to_cam.size(); pj++)
+            for (size_t pj = 0; pj < path_to_sensor.size(); pj++)
             {
                 // const size_t j = parent_joints[pj];
-                const size_t j = path_to_cam[pj];
+                const size_t j = path_to_sensor[pj];
                 if (std::find(parent_joints.begin(), parent_joints.end(), j) == parent_joints.end())
                 {
                     break;

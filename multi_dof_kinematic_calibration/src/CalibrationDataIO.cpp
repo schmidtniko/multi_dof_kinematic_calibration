@@ -72,16 +72,15 @@ CalibrationData::CalibrationData(const std::string& filePath)
     std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
     for (const auto& cameraNode : rootNode.get_child("sensors"))
     {
-		const std::string sensor_type = cameraNode.second.get<std::string>("sensor_type");
+        const int sensor_id = cameraNode.second.get<int>("sensor_id");
+        sensor_id_to_parent_joint.emplace(
+            sensor_id, cameraNode.second.get<std::string>("parent_joint"));
+        const std::string sensor_type = cameraNode.second.get<std::string>("sensor_type");
         if (sensor_type == "camera")
         {
-            const int camera_id = cameraNode.second.get<int>("sensor_id");
-
-            cam_id_to_parent_joint[camera_id] = cameraNode.second.get<std::string>("parent_joint");
-
+            const int camera_id = sensor_id;
 
             boost::filesystem::path camera_path = cameraNode.second.get<std::string>("camera_path");
-
             if (camera_path.is_relative())
                 camera_path = boost::filesystem::path(filePath).parent_path() / camera_path;
 

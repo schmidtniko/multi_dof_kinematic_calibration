@@ -45,7 +45,7 @@ struct CalibrationData
 	
 	std::map<std::string, size_t> name_to_joint;
 	
-	std::map<int, std::string> cam_id_to_parent_joint;
+	std::map<int, std::string> sensor_id_to_parent_joint;
 	
 	std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
 };
