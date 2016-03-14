@@ -254,6 +254,13 @@ Calibrator::Calibrator(CalibrationData calib_data)
 //-----------------------------------------------------------------------------
 void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, OptimizationMode mode)
 {
+	if (mode==OptimizationMode::SIMPLE_THEN_FULL)
+		std::cout << "Performing simple, then full optimization" << std::endl;
+	else if (mode==OptimizationMode::ONLY_SIMPLE)
+		std::cout << "Performing simple optimization only" << std::endl;
+	else if (mode==OptimizationMode::ONLY_FULL)
+		std::cout << "Performing full optimization only" << std::endl;
+	
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
         return cposeInv<double>(pose);
