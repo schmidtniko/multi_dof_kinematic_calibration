@@ -1165,6 +1165,117 @@ void Calibrator::calibrate()
                       << std::endl;
         }
     }
+
+    //////////////////////////////////
+    // visualize results
+
+    DebugOutput dbg_out("vis.txt");
+    for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
+    {
+        const std::vector<int>& joint_config = calib_data.calib_frames[i].joint_config;
+        std::vector<double> joint_config_d;
+        for (auto c : joint_config)
+            joint_config_d.push_back(c);
+
+        TransformationChain chain;
+
+        std::vector<double*> parameter_blocks;
+
+        Eigen::Vector3d last_pos(0, 0, 0);
+
+        // Eigen::Matrix<double,7,1> loc;
+        // loc << 0,0,0,1,0,0,0;
+        if (calib_data.calib_frames[i].location_id != -1)
+        {
+            auto& location = location_id_to_location[calib_data.calib_frames[i].location_id];
+            chain.addPose();
+
+            parameter_blocks.push_back(&location(0));
+            parameter_blocks.push_back(&location(3));
+
+            dbg_out.writePose(
+                location, "location_" + std::to_string(calib_data.calib_frames[i].location_id));
+
+            last_pos = cposeInv(location).segment<3>(0);
+        }
+
+
+        std::function<void(
+            const Eigen::Vector3d&, TransformationChain, std::vector<double*>, size_t)> process
+            = [&](const Eigen::Vector3d& last_pos, TransformationChain cur_chain,
+                std::vector<double*> parameter_blocks, size_t j)
+        {
+            if (calib_data.joints[j].type == "1_dof_joint")
+            {
+                cur_chain.add1DOFJoint();
+
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
+                parameter_blocks.push_back(&joint_config_d[j]);
+                // std::cout << "Joint val11: " << j << " " << dj << " " <<
+                // joint_positions[j][dj] << std::endl;
+                parameter_blocks.push_back(&jointData[j].ticks_to_rad);
+            }
+            else if (calib_data.joints[j].type == "pose")
+            {
+                cur_chain.addPose();
+
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(0));
+                parameter_blocks.push_back(&jointData[j].joint_to_parent_pose(3));
+            }
+
+            const auto world_to_pose = cur_chain.endEffectorPose(&parameter_blocks[0]);
+
+            dbg_out.writePose(world_to_pose, calib_data.joints[j].name);
+
+            const Eigen::Vector3d cur_pos = cposeInv(world_to_pose).segment<3>(0);
+
+            dbg_out.addLine(last_pos, cur_pos);
+
+            for (size_t cj : joint_to_children[j])
+                process(cur_pos, cur_chain, parameter_blocks, cj);
+        };
+        process(last_pos, chain, parameter_blocks, start_joint);
+
+
+        //        const auto& jointConfig = calib_data.calib_frames[i].joint_config;
+
+        //        Eigen::Matrix<double, 7, 1> root;
+        //        root << 0, 0, 0, 1, 0, 0, 0;
+
+        //        for (size_t pj = 0; pj < parent_joints.size(); pj++)
+        //        {
+        //            const size_t j = parent_joints[pj];
+        //            root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
+
+        //            const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
+        //            // double t = joint_positions[j][indexToDistinctJoint[i][j]];
+        //            Eigen::Matrix<double, 7, 1> tiltRot;
+        //            tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
+        //            root = poseAdd(root, tiltRot);
+
+        //            // auto invRet = poseInverse(root);
+        //            //            DebugVis dbg;
+        //            //            dbg.cam.q = invRet.segment<4>(3);
+        //            //            dbg.cam.t = invRet.segment<3>(0);
+        //            //            dbg.type = 1;
+        //            // debugVis.push_back(dbg);
+    }
+
+// std::cout << "NumCamPoses" << camPoses.size() << std::endl;
+#if 0
+	        for (size_t c = 0; c < camPoses.size(); c++)
+	        {
+	            auto ret = poseAdd(root, poseInverse(camPoses[c]));
+	            // std::cout << ret.transpose() << std::endl;
+	            auto invRet = poseInverse(ret);
+	            DebugVis dbg;
+	            dbg.cam.q = invRet.segment<4>(3);
+	            dbg.cam.t = invRet.segment<3>(0);
+	
+	            debugVis.push_back(dbg);
+	        }
+#endif
 }
 //-----------------------------------------------------------------------------
 bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,
