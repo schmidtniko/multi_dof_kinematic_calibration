@@ -101,8 +101,9 @@ Use the following steps to perform the marker detection and 3D reconstruction (a
 
 ```
 wget TODO
-unzip TODO
-./build/bin/multi_dof_kinematic_calibration --project_path TODO
+unzip ptu_d47_w_asus_xtion_ir.zip
+./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/cam1/
+./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
 
 If you want to visualize the results, simply run:
