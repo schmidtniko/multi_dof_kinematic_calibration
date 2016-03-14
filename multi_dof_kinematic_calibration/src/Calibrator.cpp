@@ -688,7 +688,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
     std::cout << "Simple Solution: " << summary.termination_type << std::endl;
     // std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << std::endl;
+    std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << " px" << std::endl;
 
 
     ceres::Solver::Summary summary2;
@@ -696,7 +696,7 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
     std::cout << "Full Solution: " << summary2.termination_type << std::endl;
     std::cout << summary2.FullReport() << std::endl;
 
-    std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << std::endl;
+    std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << " px" << std::endl;
 
 
     // Print some results
@@ -804,10 +804,15 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
                 joint_positions[j][i] = jointConfig[j];
             }
         }
-        std::cout << "Test Reprojection Error RMS: " << computeRMSE() << std::endl;
+        std::cout << "Test Reprojection Error RMS: " << computeRMSE() << " px" << std::endl;
+
+        for (const auto& id_to_cam_model : calib_data.cameraModelById)
+        {
+            const int camera_id = id_to_cam_model.first;
+            std::cout << "Test Reprojection Error RMS for camera " << camera_id << ": "
+                      << computeRMSEByCam(camera_id) << " px" << std::endl;
+        }
     }
-    std::cout << "ca1: " << computeRMSEByCam(0) << std::endl;
-    std::cout << "ca1: " << computeRMSEByCam(1) << std::endl;
 }
 //-----------------------------------------------------------------------------
 void Calibrator::exportCalibrationResults(const std::string& filePath) const
@@ -897,7 +902,7 @@ void Calibrator::calibrate()
     {
         jointData[j].joint_to_parent_pose = calib_data.joints[j].joint_to_parent_guess;
         jointData[j].ticks_to_rad = calib_data.joints[j].ticks_to_rad;
-		// HACK: Joint positions hier her?
+        // HACK: Joint positions hier her?
     }
 
     size_t start_joint = 0;
@@ -922,7 +927,7 @@ void Calibrator::calibrate()
     };
     optimizeJ(start_joint);
 
-	// HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
+    // HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
     // optimizeUpToJoint(0, true);
 }
 //-----------------------------------------------------------------------------
