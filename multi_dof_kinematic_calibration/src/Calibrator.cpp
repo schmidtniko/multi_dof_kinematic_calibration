@@ -293,7 +293,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     {
         for (const auto& sensor_id_to_parent_joint : calib_data.sensor_id_to_parent_joint)
         {
-            auto path_to_cam = pathFromRootToJoint(sensor_id_to_parent_joint.second);
+            const auto path_to_cam = pathFromRootToJoint(sensor_id_to_parent_joint.second);
             // if (std::find(path_to_cam.begin(), path_to_cam.end(), upTojointIndex)
             //    != path_to_cam.end())
             {
@@ -319,7 +319,9 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
     const std::vector<size_t> parent_joints(parent_joint_set.begin(), parent_joint_set.end());
 
-    std::cout << "Descendants: " << descendant_joints.size() << std::endl;
+    if (!descendant_joints.empty())
+        std::cout << "Replacing " << descendant_joints.size() << " joints with temp poses "
+                  << std::endl;
 
     ceres::Problem problem_simple;
     ceres::Problem problem_full;
@@ -404,7 +406,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     std::map<size_t, size_t> distinctFrequencies;
 
 
-    std::map<DistinctLeverIndex, Eigen::Matrix<double, 7, 1> > camPoses;
+    std::map<DistinctLeverIndex, Eigen::Matrix<double, 7, 1> > temp_poses;
 
     std::vector<std::map<size_t, double> > joint_positions(calib_data.joints.size());
 
@@ -525,14 +527,14 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
                 // std::cout << "Insert CP " << std::endl;
 
-                camPoses[distinct_lever_index] << 0, 0, 0, 1, 0, 0, 0;
-                problem_simple.AddParameterBlock(&camPoses[distinct_lever_index](0), 3);
+                temp_poses[distinct_lever_index] << 0, 0, 0, 1, 0, 0, 0;
+                problem_simple.AddParameterBlock(&temp_poses[distinct_lever_index](0), 3);
                 problem_simple.AddParameterBlock(
-                    &camPoses[distinct_lever_index](3), 4, quaternion_parameterization);
+                    &temp_poses[distinct_lever_index](3), 4, quaternion_parameterization);
 
-                problem_full.AddParameterBlock(&camPoses[distinct_lever_index](0), 3);
+                problem_full.AddParameterBlock(&temp_poses[distinct_lever_index](0), 3);
                 problem_full.AddParameterBlock(
-                    &camPoses[distinct_lever_index](3), 4, quaternion_parameterization2);
+                    &temp_poses[distinct_lever_index](3), 4, quaternion_parameterization2);
             }
             else
             {
@@ -633,8 +635,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
             {
                 chain.addPose();
                 const size_t dl = indexToDistinctLever[i];
-                parameter_blocks.push_back(&camPoses[dl](0));
-                parameter_blocks.push_back(&camPoses[dl](3));
+                parameter_blocks.push_back(&temp_poses[dl](0));
+                parameter_blocks.push_back(&temp_poses[dl](3));
                 //	std::cout << "c" << std::endl;
             }
 
@@ -837,7 +839,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     {
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem_simple, &summary);
-        std::cout << "Simple Solution: " << summary.termination_type << std::endl;
+        std::cout << "Simple Solution Optimization returned termination type "
+                  << summary.termination_type << std::endl;
         // std::cout << summary.FullReport() << std::endl;
 
         std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << " px"
@@ -849,8 +852,9 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     {
         ceres::Solver::Summary summary2;
         ceres::Solve(options, &problem_full, &summary2);
-        std::cout << "Full Solution: " << summary2.termination_type << std::endl;
-        std::cout << summary2.FullReport() << std::endl;
+        std::cout << "Full Solution Optimization returned termination type "
+                  << summary2.termination_type << std::endl;
+        // std::cout << summary2.FullReport() << std::endl;
 
         std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << " px"
                   << std::endl;
@@ -873,14 +877,14 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     for (size_t pj = 0; pj < parent_joints.size(); pj++)
     {
         const size_t j = parent_joints[pj];
-        std::cout << calib_data.joints[j].name << ":"
+        std::cout << calib_data.joints[j].name << ": "
                   << jointData[j].joint_to_parent_pose.transpose() << "\n";
     }
     std::cout << std::endl;
 
-    std::cout << "CamPoses: " << std::endl;
-    for (size_t i = 0; i < camPoses.size(); i++)
-        std::cout << camPoses[i].transpose() << std::endl;
+    //    std::cout << "Tempoary Poses: " << std::endl;
+    //    for (size_t i = 0; i < temp_poses.size(); i++)
+    //        std::cout << temp_poses[i].transpose() << std::endl;
 
 
     if (!descendant_joints.empty())
@@ -1028,7 +1032,7 @@ void Calibrator::calibrate()
     {
         if (calib_data.calib_frames[i].location_id != -1)
         {
-			// HACK: This should be configurable
+            // HACK: This should be configurable
             location_id_to_location[calib_data.calib_frames[i].location_id] << 0, 0, 0, 1, 0, 0, 0;
         }
 
