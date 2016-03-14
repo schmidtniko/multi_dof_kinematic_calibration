@@ -35,7 +35,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
         reconstructed_map_points = visual_marker_mapping::flattenReconstruction(reconstructed_tags);
     }
 
-    for (const auto& jointNode : rootNode.get_child("kinematic_chain"))
+    for (const auto& jointNode : rootNode.get_child("hierarchy"))
     {
         JointInfo inf;
         inf.name = jointNode.second.get<std::string>("name");
@@ -70,39 +70,45 @@ CalibrationData::CalibrationData(const std::string& filePath)
     }
 
     std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
-    for (const auto& cameraNode : rootNode.get_child("cameras"))
+    for (const auto& cameraNode : rootNode.get_child("sensors"))
     {
-        const int camera_id = cameraNode.second.get<int>("camera_id");
+		const std::string sensor_type = cameraNode.second.get<std::string>("sensor_type");
+        if (sensor_type == "camera")
+        {
+            const int camera_id = cameraNode.second.get<int>("sensor_id");
 
-        cam_id_to_parent_joint[camera_id] = cameraNode.second.get<std::string>("parent_joint");
+            cam_id_to_parent_joint[camera_id] = cameraNode.second.get<std::string>("parent_joint");
 
 
-        boost::filesystem::path camera_path = cameraNode.second.get<std::string>("camera_path");
+            boost::filesystem::path camera_path = cameraNode.second.get<std::string>("camera_path");
 
-        if (camera_path.is_relative())
-            camera_path = boost::filesystem::path(filePath).parent_path() / camera_path;
+            if (camera_path.is_relative())
+                camera_path = boost::filesystem::path(filePath).parent_path() / camera_path;
 
-        // Read cam intrinsics
+            // Read cam intrinsics
 
-        const std::string cam_intrin_filename = (camera_path / "camera_intrinsics.json").string();
+            const std::string cam_intrin_filename
+                = (camera_path / "camera_intrinsics.json").string();
 
-        std::cout << "Trying to load camera intrinsics for camera " << camera_id << " from "
-                  << cam_intrin_filename << " ..." << std::endl;
+            std::cout << "Trying to load camera intrinsics for camera " << camera_id << " from "
+                      << cam_intrin_filename << " ..." << std::endl;
 
-        boost::property_tree::ptree cameraTree;
-        boost::property_tree::json_parser::read_json(cam_intrin_filename, cameraTree);
-        cameraModelById.emplace(
-            camera_id, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
+            boost::property_tree::ptree cameraTree;
+            boost::property_tree::json_parser::read_json(cam_intrin_filename, cameraTree);
+            cameraModelById.emplace(
+                camera_id, visual_marker_mapping::propertyTreeToCameraModel(cameraTree));
 
-        // Read marker detections
+            // Read marker detections
 
-        const std::string marker_det_filename = (camera_path / "marker_detections.json").string();
+            const std::string marker_det_filename
+                = (camera_path / "marker_detections.json").string();
 
-        std::cout << "Trying to load marker detections for camera " << camera_id << " from "
-                  << marker_det_filename << " ..." << std::endl;
-        detectionResultsByCamId.emplace(
-            camera_id, visual_marker_mapping::readDetectionResult(marker_det_filename));
-        std::cout << "Read marker detections for camera " << camera_id << "!" << std::endl;
+            std::cout << "Trying to load marker detections for camera " << camera_id << " from "
+                      << marker_det_filename << " ..." << std::endl;
+            detectionResultsByCamId.emplace(
+                camera_id, visual_marker_mapping::readDetectionResult(marker_det_filename));
+            std::cout << "Read marker detections for camera " << camera_id << "!" << std::endl;
+        }
     }
 
     //	std::ofstream conv("conv.txt");
