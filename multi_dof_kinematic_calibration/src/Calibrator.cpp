@@ -192,6 +192,59 @@ struct KinematicChainPoseError
     TransformationChain chain;
 };
 
+struct MarkerPoint2PlaneError
+{
+    MarkerPoint2PlaneError(const Eigen::Matrix<double, 7, 1>& marker_to_world,
+        const Eigen::Vector3d& laser_point, const TransformationChain& chain)
+        : marker_to_world(marker_to_world)
+        , laser_point(laser_point)
+        , chain(chain)
+    {
+        marker_plane_n = cposeTransformPoint(marker_to_world, Eigen::Vector3d(0, 0, 1))
+            - marker_to_world.segment<3>(0);
+        marker_plane_n /= marker_plane_n.norm();
+        marker_plane_d = marker_plane_n.transpose() * marker_to_world.segment<3>(0);
+
+        //		std::cout << "pos: " << marker_to_world.transpose() << std::endl;
+        //		std::cout << "norm: " << marker_plane_n.transpose() << std::endl;
+    }
+
+
+    template <typename T> bool operator()(T const* const* parameters, T* residuals) const
+    {
+        const auto world_to_laser = chain.endEffectorPose<T>(parameters);
+        auto laser_to_world = cposeInv(world_to_laser);
+
+        Eigen::Matrix<T, 3, 1> laser_point_in_world
+            = cposeTransformPoint<T>(laser_to_world, laser_point.cast<T>());
+
+        T td = laser_point_in_world.transpose() * marker_plane_n.cast<T>();
+
+        eMap3(residuals) = (marker_plane_n.cast<T>() * (T(marker_plane_d) - td)) / T(0.01);
+        return true;
+    }
+
+    // Factory to hide the construction of the CostFunction object from
+    // the client code.
+    static ceres::CostFunction* Create(const Eigen::Matrix<double, 7, 1>& marker_to_world,
+        const Eigen::Vector3d& laser_point, const TransformationChain& chain)
+    {
+        auto cost_function = new ceres::DynamicAutoDiffCostFunction<MarkerPoint2PlaneError, 4>(
+            new MarkerPoint2PlaneError(marker_to_world, laser_point, chain));
+        chain.addParametersToCostFn(cost_function);
+        cost_function->SetNumResiduals(3);
+        return cost_function;
+    }
+
+    Eigen::Matrix<double, 7, 1> marker_to_world;
+    Eigen::Vector3d laser_point;
+
+    Eigen::Vector3d marker_plane_n;
+    double marker_plane_d;
+
+    TransformationChain chain;
+};
+
 
 //-----------------------------------------------------------------------------
 Calibrator::Calibrator(CalibrationData calib_data)
@@ -199,7 +252,7 @@ Calibrator::Calibrator(CalibrationData calib_data)
 {
 }
 //-----------------------------------------------------------------------------
-void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
+void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, Calibrator::OptimizationMode mode)
 {
     auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
     {
@@ -512,13 +565,13 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
         // std::cout << "LeverGroupSize: " << distinctFrequencies[indexToDistinctLever[i]]  <<
         // std::endl;
 
-        for (const auto& id_to_cam_model : calib_data.cameraModelById)
+        // for (const auto& id_to_cam_model : calib_data.cameraModelById)
+        for (const auto& sensor_id_to_type : calib_data.sensor_id_to_type)
         {
-            const int camera_id = id_to_cam_model.first;
-            const auto& cam_model = id_to_cam_model.second;
+            const int sensor_id = sensor_id_to_type.first;
+            const std::string& sensor_type = sensor_id_to_type.second;
+            // const int camera_id = id_to_cam_model.first;
 
-            const Eigen::Matrix<double, 7, 1> world_to_cam
-                = reconstructedPoses[std::make_pair(i, camera_id)];
             // Eigen::Matrix<double, 7, 1> cam_to_world = poseInverse(world_to_cam);
             // std::cout << "CamToWorld : " << cam_to_world.transpose() << std::endl;
 
@@ -537,9 +590,9 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
             }
 
             const auto path_to_sensor
-                = pathFromRootToJoint(calib_data.sensor_id_to_parent_joint[camera_id]);
+                = pathFromRootToJoint(calib_data.sensor_id_to_parent_joint[sensor_id]);
 
-            constexpr bool robustify = true;
+            constexpr bool robustify = false; // true;
 
             // for (size_t pj = 0; pj < parent_joints.size(); pj++)
             for (size_t pj = 0; pj < path_to_sensor.size(); pj++)
@@ -581,47 +634,141 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
                 parameter_blocks.push_back(&camPoses[dl](3));
                 //	std::cout << "c" << std::endl;
             }
-            auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
-            problem_simple.AddResidualBlock(simpleCostFn,
-                robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
-                parameter_blocks);
 
-            const auto& camera_observations
-                = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
-            const auto& world_points = calib_data.reconstructed_map_points;
-            iterateMatches(camera_observations, world_points,
-                [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
+            if (sensor_type == "camera")
+            {
+                // sensor is a cam
+                const int camera_id = sensor_id;
+                const auto& cam_model = calib_data.cameraModelById[camera_id];
+
+                const Eigen::Matrix<double, 7, 1> world_to_cam
+                    = reconstructedPoses[std::make_pair(i, camera_id)];
+
+                // location_id_to_location[calib_data.calib_frames[i].location_id] = world_to_cam;
+                // //////// hack
+
+                auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
+                problem_simple.AddResidualBlock(simpleCostFn,
+                    robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
+                    parameter_blocks);
+
+                // const auto& cam_model = id_to_cam_model.second;
+                const auto& camera_observations
+                    = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
+                const auto& world_points = calib_data.reconstructed_map_points;
+                iterateMatches(camera_observations, world_points,
+                    [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
+                    {
+                        // check origin pose
+                        // {
+                        //     OpenCVReprojectionError repErr(tagObs.corners[c],
+                        //     camModel.distortionCoefficients,camModel.getK());
+                        //     repErr.print=true;
+                        //     double res[2];
+                        //     repErr(&world_to_cam(0), &world_to_cam(3), &tagCorners[c](0), res);
+                        //     std::cout << "ERR: " << sqrt(res[0]*res[0]+res[1]*res[1]) <<
+                        //     std::endl;
+                        // }
+
+                        auto fullCostFn = KinematicChainRepError::Create(
+                            cp, wp, cam_model.distortionCoefficients, cam_model.getK(), chain);
+                        problem_full.AddResidualBlock(fullCostFn,
+                            robustify ? new ceres::HuberLoss(1.0)
+                                      : nullptr, // new ceres::CauchyLoss(3),
+                            parameter_blocks);
+
+                        repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
+                            {
+                                Eigen::Vector2d err;
+                                fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                                return err.squaredNorm();
+                            });
+                        repErrorFnsByCam[camera_id].push_back(
+                            [parameter_blocks, fullCostFn]() -> double
+                            {
+                                Eigen::Vector2d err;
+                                fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                                return err.squaredNorm();
+                            });
+                    });
+            }
+            else if (sensor_type == "laser_3d")
+            {
+                const auto& cur_scan
+                    = calib_data.calib_frames[i].sensor_id_to_laser_scan_3d[sensor_id];
+
+                const Eigen::Matrix<double, 7, 1> world_to_laser
+                    = chain.endEffectorPose(&parameter_blocks[0]);
+                const auto laser_to_world = cposeInv<double>(world_to_laser);
+
+                int corresp = 0;
+                for (int p = 0; p < cur_scan->points.cols(); p++)
                 {
-                    // check origin pose
-                    // {
-                    //     OpenCVReprojectionError repErr(tagObs.corners[c],
-                    //     camModel.distortionCoefficients,camModel.getK());
-                    //     repErr.print=true;
-                    //     double res[2];
-                    //     repErr(&world_to_cam(0), &world_to_cam(3), &tagCorners[c](0), res);
-                    //     std::cout << "ERR: " << sqrt(res[0]*res[0]+res[1]*res[1]) << std::endl;
-                    // }
+                    const Eigen::Vector3d pt = cur_scan->points.col(p);
+                    const Eigen::Vector3d ptw = cposeTransformPoint<double>(laser_to_world, pt);
 
-                    auto fullCostFn = KinematicChainRepError::Create(
-                        cp, wp, cam_model.distortionCoefficients, cam_model.getK(), chain);
+                    const visual_marker_mapping::ReconstructedTag* min_tag = nullptr;
+                    double min_sqr_dist = 0.12 * 0.12;
+                    for (const auto& id_to_rec_tag : calib_data.reconstructed_tags)
+                    {
+                        const visual_marker_mapping::ReconstructedTag& tag = id_to_rec_tag.second;
+#if 0
+	                    Eigen::Matrix<double, 7, 1> marker_to_world;
+	                    marker_to_world.segment<3>(0) = tag.t;
+	                    marker_to_world.segment<4>(3) = tag.q;
+	                    auto world_to_marker = cposeInv<double>(marker_to_world);
+	                    auto mpt = cposeTransformPoint<double>(world_to_marker, ptw);
+	
+	                    if ((mpt.x() < -0.12) || (mpt.y() < -0.12) || (mpt.x() > 0.12)
+	                        || (mpt.y() > 0.12))
+	                        continue;
+	
+	                    if (mpt.z() < -0.2)
+	                        continue;
+	                    if (mpt.z() > 0.2)
+	                        continue;
+	
+	                    const double dist = mpt.z();
+#else
+                        const double sqr_dist = (tag.t - ptw).squaredNorm();
+#endif
+                        if (sqr_dist < min_sqr_dist)
+                        {
+                            min_tag = &tag;
+                            min_sqr_dist = sqr_dist;
+                        }
+                    }
+                    if (!min_tag)
+                        continue;
+
+                    // dbgout.addPoint(ptw);
+
+                    Eigen::Matrix<double, 7, 1> marker_to_world;
+                    marker_to_world.segment<3>(0) = min_tag->t;
+                    marker_to_world.segment<4>(3) = min_tag->q;
+
+#if 1
+                    auto fullCostFn = MarkerPoint2PlaneError::Create(marker_to_world, pt, chain);
                     problem_full.AddResidualBlock(fullCostFn,
                         robustify ? new ceres::HuberLoss(1.0)
                                   : nullptr, // new ceres::CauchyLoss(3),
                         parameter_blocks);
+#endif
 
-                    repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
-                        {
-                            Eigen::Vector2d err;
-                            fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
-                            return err.squaredNorm();
-                        });
-                    repErrorFnsByCam[camera_id].push_back([parameter_blocks, fullCostFn]() -> double
-                        {
-                            Eigen::Vector2d err;
-                            fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
-                            return err.squaredNorm();
-                        });
-                });
+
+                    //			{
+                    //            Eigen::Vector3d err;
+                    //            double* parameter_blocks[4] = { &world_to_cam_poses[i](0),
+                    //            &world_to_cam_poses[i](3) ,&cam_to_laser_pose(0),
+                    //											&cam_to_laser_pose(3)};
+                    //            fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                    //            std::cout << "err: " << err.transpose() << std::endl;;
+                    //			}
+
+                    corresp++;
+                }
+                // std::cout << "Corresp : "<< corresp << std::endl;
+            }
         }
     }
     std::cout << "Done creating problems..." << std::endl;
@@ -683,20 +830,28 @@ void Calibrator::optimizeUpToJoint(size_t upTojointIndex, bool fullOpt)
 #endif
 
 
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem_simple, &summary);
-    std::cout << "Simple Solution: " << summary.termination_type << std::endl;
-    // std::cout << summary.FullReport() << std::endl;
+    if ((mode == OptimizationMode::SIMPLE_THEN_FULL) || (mode == OptimizationMode::ONLY_SIMPLE))
+    {
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem_simple, &summary);
+        std::cout << "Simple Solution: " << summary.termination_type << std::endl;
+        // std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << " px" << std::endl;
+        std::cout << "Simple Training Reprojection Error RMS: " << computeRMSE() << " px"
+                  << std::endl;
+    }
 
 
-    ceres::Solver::Summary summary2;
-    ceres::Solve(options, &problem_full, &summary2);
-    std::cout << "Full Solution: " << summary2.termination_type << std::endl;
-    std::cout << summary2.FullReport() << std::endl;
+    if ((mode == OptimizationMode::SIMPLE_THEN_FULL) || (mode == OptimizationMode::ONLY_FULL))
+    {
+        ceres::Solver::Summary summary2;
+        ceres::Solve(options, &problem_full, &summary2);
+        std::cout << "Full Solution: " << summary2.termination_type << std::endl;
+        std::cout << summary2.FullReport() << std::endl;
 
-    std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << " px" << std::endl;
+        std::cout << "Full Training Reprojection Error RMS: " << computeRMSE() << " px"
+                  << std::endl;
+    }
 
 
     // Print some results
@@ -921,14 +1076,18 @@ void Calibrator::calibrate()
     std::function<void(size_t)> optimizeJ = [&](size_t j)
     {
         if (calib_data.joints[j].type == "1_dof_joint")
-            optimizeUpToJoint(j, false);
+            optimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
         for (auto cj : joint_to_children[j])
             optimizeJ(cj);
     };
     optimizeJ(start_joint);
 
     // HACK wie geht man damit um wenn es gar keine 1 dof joints gibt...?
-    optimizeUpToJoint(0, true);
+    optimizeUpToJoint(0, true, OptimizationMode::ONLY_SIMPLE);
+    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
+    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
+    optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
+	optimizeUpToJoint(0, true, OptimizationMode::ONLY_FULL);
 }
 //-----------------------------------------------------------------------------
 bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,

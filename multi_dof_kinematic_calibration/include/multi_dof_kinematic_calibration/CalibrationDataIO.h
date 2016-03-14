@@ -47,6 +47,8 @@ struct CalibrationData
 
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
     std::vector<int> laser_sensor_ids;
+	
+	std::map<int, std::string> sensor_id_to_type;
 
     std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
@@ -56,6 +58,7 @@ struct CalibrationData
     std::map<int, std::string> sensor_id_to_parent_joint;
 
     std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
+	std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
 };
 }
 

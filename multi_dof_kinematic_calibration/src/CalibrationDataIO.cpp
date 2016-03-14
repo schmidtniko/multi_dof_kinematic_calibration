@@ -68,7 +68,6 @@ CalibrationData::CalibrationData(const std::string& filePath)
                 = boost::filesystem::path(filePath).parent_path() / reconstruction_filename;
         visual_marker_mapping::CameraModel cam_model;
         std::map<int, visual_marker_mapping::Camera> reconstructed_cameras;
-        std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
         visual_marker_mapping::parseReconstructions(
             reconstruction_filename.string(), reconstructed_tags, reconstructed_cameras, cam_model);
         std::cout << "Read reconstructions!" << std::endl;
@@ -155,6 +154,7 @@ CalibrationData::CalibrationData(const std::string& filePath)
         {
             laser_sensor_ids.push_back(sensor_id);
         }
+        sensor_id_to_type.emplace(sensor_id, sensor_type);
     }
 
     //	std::ofstream conv("conv.txt");

@@ -119,6 +119,18 @@ Eigen::Matrix<T, 6, 1> cposeManifoldMinus(
     return ret;
 }
 
+
+template <typename T>
+Eigen::Matrix<T, 3, 1> cposeTransformPoint(
+    const Eigen::Matrix<T, 7, 1>& a, const Eigen::Matrix<T, 3, 1>& pt)
+{
+    Eigen::Matrix<T, 3, 1> ret;
+    ceres::UnitQuaternionRotatePoint(&a(3), &pt(0), &ret(0));
+    ret += a.template segment<3>(0);
+    return ret;
+}
+
+
 //-----------------------------------------------------------------------------
 
 struct GaussianPrior1D

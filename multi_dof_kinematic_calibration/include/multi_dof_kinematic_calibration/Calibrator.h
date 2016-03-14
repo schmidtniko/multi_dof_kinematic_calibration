@@ -13,8 +13,16 @@ struct Calibrator
 	Calibrator(CalibrationData calib_data);
 	
     void calibrate();
+	
+	
+	enum class OptimizationMode
+	{
+		SIMPLE_THEN_FULL,
+		ONLY_SIMPLE,
+		ONLY_FULL
+	};
 
-    void optimizeUpToJoint(size_t upTojointIndex, bool fullOpt);
+    void optimizeUpToJoint(size_t upTojointIndex, bool fullOpt, OptimizationMode mode);
 
     CalibrationData calib_data;
 
