@@ -611,7 +611,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
             const auto path_to_sensor
                 = pathFromRootToJoint(calib_data.sensor_id_to_parent_joint[sensor_id]);
 
-            constexpr bool robustify = false; // true;
+            constexpr bool robustify = true; // false; // true;
 
             // for (size_t pj = 0; pj < parent_joints.size(); pj++)
             for (size_t pj = 0; pj < path_to_sensor.size(); pj++)
@@ -713,6 +713,9 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
             }
             else if (sensor_type == "laser_3d")
             {
+//				if (mode == OptimizationMode::SIMPLE_THEN_FULL)
+//					continue;
+				
                 const auto& cur_scan
                     = calib_data.calib_frames[i].sensor_id_to_laser_scan_3d[sensor_id];
 
@@ -727,7 +730,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                     const Eigen::Vector3d ptw = cposeTransformPoint<double>(laser_to_world, pt);
 
                     const visual_marker_mapping::ReconstructedTag* min_tag = nullptr;
-                    double min_sqr_dist = 0.12 * 0.12;
+                    double min_sqr_dist = 9999999999.0;
                     for (const auto& id_to_rec_tag : calib_data.reconstructed_tags)
                     {
                         const visual_marker_mapping::ReconstructedTag& tag = id_to_rec_tag.second;
@@ -750,8 +753,9 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 	                    const double dist = mpt.z();
 #else
                         const double sqr_dist = (tag.t - ptw).squaredNorm();
+                        const double marker_radius = std::max(tag.tagWidth, tag.tagHeight) / 2.0 * sqrt(2.0);
 #endif
-                        if (sqr_dist < min_sqr_dist)
+                        if ((sqr_dist < min_sqr_dist) && (sqr_dist < marker_radius * marker_radius))
                         {
                             min_tag = &tag;
                             min_sqr_dist = sqr_dist;
@@ -769,9 +773,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 #if 1
                     auto fullCostFn = MarkerPoint2PlaneError::Create(marker_to_world, pt, chain);
                     problem_full.AddResidualBlock(fullCostFn,
-                        robustify ? new ceres::HuberLoss(1.0)
-                                  : nullptr, // new ceres::CauchyLoss(3),
-                        parameter_blocks);
+                        robustify ? new ceres::HuberLoss(1.0) : nullptr, parameter_blocks);
 #endif
 
 
@@ -786,7 +788,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
                     corresp++;
                 }
-                // std::cout << "Corresp : "<< corresp << std::endl;
+                //std::cout << "Corresp : "<< corresp << std::endl;
             }
         }
     }
@@ -1195,14 +1197,18 @@ void Calibrator::calibrate()
 
             dbg_out.writePose(
                 location, "location_" + std::to_string(calib_data.calib_frames[i].location_id));
+			
+			//std::cout << "Location: " << location.transpose() << std::endl;
 
             last_pos = cposeInv(location).segment<3>(0);
         }
 
+        std::map<std::string, Eigen::Matrix<double, 7, 1> > world_to_joint_poses;
+
 
         std::function<void(
             const Eigen::Vector3d&, TransformationChain, std::vector<double*>, size_t)> process
-            = [&](const Eigen::Vector3d& last_pos, TransformationChain cur_chain,
+            = [&](const Eigen::Vector3d& last_posi, TransformationChain cur_chain,
                 std::vector<double*> parameter_blocks, size_t j)
         {
             if (calib_data.joints[j].type == "1_dof_joint")
@@ -1225,17 +1231,44 @@ void Calibrator::calibrate()
             }
 
             const auto world_to_pose = cur_chain.endEffectorPose(&parameter_blocks[0]);
+            world_to_joint_poses[calib_data.joints[j].name] = world_to_pose;
+			//std::cout << "Joint pose of " << calib_data.joints[j].name << "is " << world_to_pose.transpose() << std::endl;
 
             dbg_out.writePose(world_to_pose, calib_data.joints[j].name);
 
             const Eigen::Vector3d cur_pos = cposeInv(world_to_pose).segment<3>(0);
 
-            dbg_out.addLine(last_pos, cur_pos);
+            dbg_out.addLine(last_posi, cur_pos);
 
             for (size_t cj : joint_to_children[j])
                 process(cur_pos, cur_chain, parameter_blocks, cj);
         };
         process(last_pos, chain, parameter_blocks, start_joint);
+
+#if 1 // Show sensor data
+        if (i == 1)
+            for (const auto& sensor_id_to_type : calib_data.sensor_id_to_type)
+            {
+                const int sensor_id = sensor_id_to_type.first;
+                if (sensor_id_to_type.second == "laser_3d")
+                {
+                    const std::string& parent_joint
+                        = calib_data.sensor_id_to_parent_joint[sensor_id];
+                    auto world_to_sensor = world_to_joint_poses[parent_joint];
+                    auto sensor_to_world = cposeInv<double>(world_to_sensor);
+					//std::cout << "sensor_to_world: " << sensor_to_world.transpose() << std::endl;
+
+                    const auto& scan
+                        = calib_data.calib_frames[i].sensor_id_to_laser_scan_3d[sensor_id];
+                    for (int sp = 0; sp < scan->points.cols(); sp++)
+                    {
+                        const Eigen::Vector3d pw
+                            = cposeTransformPoint<double>(sensor_to_world, scan->points.col(sp));
+                        dbg_out.addPoint(pw);
+                    }
+                }
+            }
+#endif
 
 
         //        const auto& jointConfig = calib_data.calib_frames[i].joint_config;
