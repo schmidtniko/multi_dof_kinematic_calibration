@@ -2,7 +2,7 @@
 
 We are in the process of publishing our software for multi-DOF kinematic calibration. Please give us a few more days...
 
-ALL INFORMATION BELOW IS NOT FINAL
+**THE SOFTWARE (AND ITS DESCRIPTION) ARE NOT QUITE READY FOR PRIME TIME YET. ALL INFORMATION BELOW IS PRELIMINARY.**
 
 # Overview
 This software allows the accurate calibration of geometric/kinematic transformation hierarchies from sensor data. It is possible to calibrate/estimate
@@ -75,8 +75,8 @@ Our software works on *project paths*. A project path initially has to have the 
 
 ```
 my_project/.
-my_project/reconstruction.json
 my_project/calibration_data.json
+my_project/reconstruction/reconstruction.json
 my_project/my_camera/camera_calibration.json
 my_project/my_camera/images/your_image_1.jpg
 my_project/my_camera/images/...
@@ -85,9 +85,10 @@ my_project/my_laser/...
 ...
 ```
 
-* The *images* folder is supposed to contain all images that you want to use for calibration. Currently, all png and jpg files within the folder are being used. Note that they all have to have the same size, and they all have to correspond to the camera intrinsics specified in the *camera_intrinsics.json* file.
-* The camera_intrinsics.json file is something you have to create before mapping (it is not required for detection only). See the [File Formats](#file-formats) section on how to create this one.
-* Results of our tools are automatically written to the root of the project path. For example the marker detection writes a file called "marker_detections.json" to the root. The reconstruction result file is called "reconstruction.json".
+* The file *reconstruction.json* contains the reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the [README file](https://github.com/cfneuhaus/visual_marker_mapping/blob/master/README.md) in that project for information about this process.
+* The file *calibration_data.json* is the main file that describes the calibration problem to be solved. See [File Formats](#file-formats) section on how to create this one.
+* The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. The given folder- and file names only serve as an example.
+* After completion, our tool writes a *vis.json* file to the current directory. Which, together with the *reconstruction.json* file can be used to visualize the resulting transformation hierarchy.
 
 ## Running
 
@@ -110,7 +111,7 @@ Use the following steps to perform the marker detection and 3D reconstruction (a
 ```
 wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip
 unzip ptu_d47_w_asus_xtion_ir.zip
-./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/cam1/
+./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/ir_cam/
 ./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
 
@@ -128,25 +129,76 @@ Resulting Parameters:
     Joint poses:
         joint_0:     1.10333           0           0    0.781601  0.00769075 -0.00254335   -0.623726
         joint_1:  -1.29697         0         0  -0.43817  0.557305 -0.439311  0.551747
-        cam_joint_1:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
+        ir_cam_joint:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
 Test Reprojection Error RMS: 2.50235 px
 Test Reprojection Error RMS for camera 1: 2.50235 px
 ```
 
-TODO
+The tool prints the estimated transformations for all of the joints/transformations. All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*.
 
 If you want to visualize the results, simply run:
 ```
-python3 visualize_reconstruction.py calibration_room1/reconstruction.json
+python3 visualize_results.py ptu_d47_w_asus_xtion_ir/reconstruction/reconstruction.json vis.json
 ```
 
 
 # File Formats
 
-TODO
+calibration_data.json:
+```
+{
+  "world_reference" : "reconstruction/reconstruction.json",
+  "hierarchy" : [
+    {
+      "name" : "joint_0",
+      "type" : "1_dof_joint",
+      "ticks_to_rad" : 0.00089760538,
+      "angular_noise_std_dev" : 0.00089760538,
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "base"
+    },
+    {
+      "name" : "joint_1",
+      "type" : "1_dof_joint",
+      "ticks_to_rad" : 0.00091879199999999998,
+      "angular_noise_std_dev" : 0.00091879199999999998,
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "joint_0"
+    },
+    {
+      "name" : "ir_cam_joint",
+      "type" : "pose",
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "joint_1"
+    }
+  ],
+  "sensors" : [
+    {
+      "sensor_id" : "1",
+      "sensor_type" : "camera",
+      "parent_joint" : "ir_cam_joint",
+      "camera_path" : "ir_cam"
+    }
+  ],
+  "calibration_frames" : [
+    {
+      "location_id" : -1,
+      "camera_image_path_1" : "images/img_0.png",
+      "joint_0_ticks" : "-1783",
+      "joint_1_ticks" : "613"
+    },
+    {
+      "location_id" : -1,
+      "camera_image_path_1" : "images/img_1.png",
+      "joint_0_ticks" : "-1640",
+      "joint_1_ticks" : "613"
+    },
+    ...
+    ]
+}
+```
 
-Occurring rotations are represented as a unit quaternion in the order *w, x, y, z*. Rotation and translation together define a pose that transforms points from marker/camera space to world space. The local coordinate systems are defined as follows:
-* When looking at a marker, the *x*-axis goes to the right, *y* up, and *z* points out of the marker plane.
+All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*. The local coordinate systems are defined as follows:
 * A cameras *x*-axis points to the right, *y*-axis down, and the *z*-axis in viewing direction.
 
 # Authors
