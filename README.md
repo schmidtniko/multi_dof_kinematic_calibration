@@ -5,9 +5,13 @@ We are in the process of publishing our software for multi-DOF kinematic calibra
 ALL INFORMATION BELOW IS NOT FINAL
 
 # Overview
-This software allows the accurate calibration of kinematic hierarchies from sensor data. TODO
+This software allows the accurate calibration of geometric/kinematic transformation hierarchies from sensor data. It is possible to calibrate/estimate
 
-It uses AprilTags by Olson, that can simply be printed out and attached to walls or objects. To perform the reconstruction, you need a calibrated camera with a fixed focal length (no auto focus). The camera needs to be calibrated using the typical OpenCV camera calibration model. 
+* unknown robot locations
+* unknown poses within the hierarchy (for example the relative pose between two cameras)
+* unknown 1-DOF hinge joints, including the rotational axes as well as a mapping from raw encoder values to angles.
+
+Prior to optimization, hierarchies have to be modeled in a simple JSON file format, which is passed to the optimizer. The latter will then try to optimize the problem my minimizing reprojection errors to known configurations of markers, or point-to-plane metrical errors of laser points to (planar) marker surfaces. For both, the calibration of cameras, and the calibration of laser range finders, known reference geometry is required. We establish this reference making use of our [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) toolkit. It allows the accurate estimation of the 3D poses of configurations of optical markers given a set of camera images (from a DSLR camera for example). It uses AprilTags by Olson, that can simply be printed out and attached to walls or objects. To perform the reconstruction, you need a calibrated camera with a fixed focal length (no auto focus). The camera needs to be calibrated using the typical OpenCV camera calibration model. 
 
 # Installation
 
