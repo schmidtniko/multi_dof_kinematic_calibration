@@ -100,7 +100,7 @@ We provide a test dataset, that you can use to test our tools. It is available [
 Use the following steps to perform the marker detection and 3D reconstruction (assuming you are in the root folder of this repository):
 
 ```
-wget TODO
+wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip
 unzip ptu_d47_w_asus_xtion_ir.zip
 ./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/cam1/
 ./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
