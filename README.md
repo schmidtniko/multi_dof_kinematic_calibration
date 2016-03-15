@@ -86,9 +86,9 @@ my_project/my_laser/...
 ```
 
 * The file *reconstruction.json* contains the reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the README file in that project for information about this.
-* The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. TODO
 * The file *calibration_data.json* is the main file that describes the calibration problem. See [File Formats](#file-formats) section on how to create this one.
-* After completion, our tool writes a *vis.json* file to the current directory.
+* The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. The given file names only serve as an example.
+* After completion, our tool writes a *vis.json* file to the current directory. Which, together with the reconstruction can be used to visualize the resulting transformation hierarchy.
 
 ## Running
 
