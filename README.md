@@ -111,7 +111,7 @@ Use the following steps to perform the marker detection and 3D reconstruction (a
 ```
 wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip
 unzip ptu_d47_w_asus_xtion_ir.zip
-./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/cam1/
+./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/ir_cam/
 ./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
 
@@ -129,7 +129,7 @@ Resulting Parameters:
     Joint poses:
         joint_0:     1.10333           0           0    0.781601  0.00769075 -0.00254335   -0.623726
         joint_1:  -1.29697         0         0  -0.43817  0.557305 -0.439311  0.551747
-        cam_joint_1:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
+        ir_cam_joint:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
 Test Reprojection Error RMS: 2.50235 px
 Test Reprojection Error RMS for camera 1: 2.50235 px
 ```
