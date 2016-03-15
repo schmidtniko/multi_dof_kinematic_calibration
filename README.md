@@ -93,15 +93,14 @@ Our software consists of a command-line tool called *multi_dof_kinematic_calibra
 multi_dof_kinematic_calibration:
 * `--help`: Shows a help text.
 * `--project-path`: Path to the aforementioned project directory.
-* `--marker_width`, `--marker-height`: The marker width/height in meters. This is a marker size that is written to the *marker_detections.json* file with every marker. It is not used in any other way by the detection right now, but we feel that this information is an essential part of the detection result, which is why we include it. The marker can be configured to be slightly non-square, which can be used to compensate for bad and slightly distorted print-outs. If you have markers with different sizes, you will have to edit the *marker_detections.json* file by hand. If you do not care about the metrical size if your reconstruction, you can simply set both the width/height to any value, say *0.1*, or simply stick to the default value.
 
-For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_reconstruction.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
+For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_results.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
 
 The tool's only parameter is the path of the reconstruction.json file, that is being written by the visual_marker_mapping tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
 
 ## Example
 
-We provide a test dataset, that you can use to test our tools. It is available [here](TODO).
+We provide a test dataset, that you can use to test our tools. It is available [here](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip).
 
 Use the following steps to perform the marker detection and 3D reconstruction (assuming you are in the root folder of this repository):
 
