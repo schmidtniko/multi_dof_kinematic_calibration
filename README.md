@@ -2,7 +2,7 @@
 
 We are in the process of publishing our software for multi-DOF kinematic calibration. Please give us a few more days...
 
-NOTE THAT THE SOFTWARE IS NOT QUITE READY FOR PRIME TIME YET. INFORMATION BELOW IS PRELIMINARY.
+**NOTE THAT THE SOFTWARE IS NOT QUITE READY FOR PRIME TIME YET. INFORMATION BELOW IS PRELIMINARY.**
 
 # Overview
 This software allows the accurate calibration of geometric/kinematic transformation hierarchies from sensor data. It is possible to calibrate/estimate
@@ -85,9 +85,10 @@ my_project/my_laser/...
 ...
 ```
 
-* The *images* folder is supposed to contain all images that you want to use for calibration. Currently, all png and jpg files within the folder are being used. Note that they all have to have the same size, and they all have to correspond to the camera intrinsics specified in the *camera_intrinsics.json* file.
-* The camera_intrinsics.json file is something you have to create before mapping (it is not required for detection only). See the [File Formats](#file-formats) section on how to create this one.
-* Results of our tools are automatically written to the root of the project path. For example the marker detection writes a file called "marker_detections.json" to the root. The reconstruction result file is called "reconstruction.json".
+* The file *reconstruction.json* contains the reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the README file in that project for information about this.
+* The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. TODO
+* The file *calibration_data.json* is the main file that describes the calibration problem. See [File Formats](#file-formats) section on how to create this one.
+* After completion, our tool writes a *vis.json* file to the current directory.
 
 ## Running
 
