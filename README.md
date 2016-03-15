@@ -134,11 +134,11 @@ Test Reprojection Error RMS: 2.50235 px
 Test Reprojection Error RMS for camera 1: 2.50235 px
 ```
 
-TODO
+The tool prints the estimated transformations for all of the joints/transformations. All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*.
 
 If you want to visualize the results, simply run:
 ```
-python3 visualize_reconstruction.py calibration_room1/reconstruction.json
+python3 visualize_results.py ptu_d47_w_asus_xtion_ir/reconstruction/reconstruction.json vis.json
 ```
 
 
