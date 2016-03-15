@@ -1171,7 +1171,7 @@ void Calibrator::calibrate()
     //////////////////////////////////
     // visualize results
 
-    DebugOutput dbg_out("vis.txt");
+    DebugOutput dbg_out("vis.json");
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
         const std::vector<int>& joint_config = calib_data.calib_frames[i].joint_config;
@@ -1246,7 +1246,7 @@ void Calibrator::calibrate()
         process(last_pos, chain, parameter_blocks, start_joint);
 
 #if 1 // Show sensor data
-        if (i == 1)
+        if (i == 0)
             for (const auto& sensor_id_to_type : calib_data.sensor_id_to_type)
             {
                 const int sensor_id = sensor_id_to_type.first;

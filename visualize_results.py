@@ -243,7 +243,7 @@ class Game(object):
         flag = OPENGL | DOUBLEBUF | RESIZABLE
         self.surface = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT),flag)
         self.opengl_init()
-        pygame.display.set_caption("laser_camera_calibration -- Visualization")
+        pygame.display.set_caption("multi_dof_kinematic_calibration -- Visualization")
 
         glutInit(1,ctypes.c_char_p(0))
 
@@ -299,7 +299,7 @@ class Game(object):
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         #glOrtho(0,SCREEN_WIDTH,SCREEN_HEIGHT,0,0,1)
-        gluPerspective(85.0, SCREEN_WIDTH/float(SCREEN_HEIGHT), 0.1, 200.0)
+        gluPerspective(85.0, SCREEN_WIDTH/float(SCREEN_HEIGHT), 0.01, 200.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         self.cam=Camera()
@@ -374,7 +374,7 @@ class Game(object):
         self.last_lbtn=lbtn
 
         # Keyboard
-        cam_speed=4.3*dt
+        cam_speed=2.0*dt
 
         keys = pygame.key.get_pressed();
         if keys[K_SPACE]:
