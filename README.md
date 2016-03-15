@@ -75,8 +75,8 @@ Our software works on *project paths*. A project path initially has to have the 
 
 ```
 my_project/.
-my_project/reconstruction.json
 my_project/calibration_data.json
+my_project/reconstruction/reconstruction.json
 my_project/my_camera/camera_calibration.json
 my_project/my_camera/images/your_image_1.jpg
 my_project/my_camera/images/...
