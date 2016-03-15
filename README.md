@@ -34,7 +34,7 @@ In Arch Linux, use:
 
 * Ceres is available as an AUR package called [ceres-solver](https://aur.archlinux.org/packages/ceres-solver/).
 
-The AprilTags dependency is automatically pulled in as a git submodule.
+The [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) dependency is automatically pulled in as a git submodule.
 
 ## Cloning
 
