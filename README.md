@@ -100,7 +100,7 @@ multi_dof_kinematic_calibration:
 
 For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_results.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
 
-The tool's only parameter is the path of the reconstruction.json file, that is being written by the visual_marker_mapping tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
+The tool has two parameters: the path of the *reconstruction.json* file, that is being written by the visual_marker_mapping tool upon completion, and the path to the *vis.json* file that is written by the multi_dof_kinematic_calibration tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
 
 ## Example
 
