@@ -198,6 +198,8 @@ calibration_data.json:
 }
 ```
 
+TODO: Add more detailed description here.
+
 All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*. The local coordinate systems are defined as follows:
 * A cameras *x*-axis points to the right, *y*-axis down, and the *z*-axis in viewing direction.
 
