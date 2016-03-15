@@ -5,9 +5,15 @@ We are in the process of publishing our software for multi-DOF kinematic calibra
 ALL INFORMATION BELOW IS NOT FINAL
 
 # Overview
-This software allows the accurate calibration of kinematic hierarchies from sensor data. TODO
+This software allows the accurate calibration of geometric/kinematic transformation hierarchies from sensor data. It is possible to calibrate/estimate
 
-It uses AprilTags by Olson, that can simply be printed out and attached to walls or objects. To perform the reconstruction, you need a calibrated camera with a fixed focal length (no auto focus). The camera needs to be calibrated using the typical OpenCV camera calibration model. 
+* unknown robot locations,
+* unknown relative poses within the transformation hierarchy (for example the relative pose between two cameras),
+* and unknown 1-DOF hinge joints, including the rotational axes as well as a mapping from raw encoder values to angles.
+
+Prior to optimization, hierarchies have to be modeled in a simple JSON file format, which is passed to the optimizer. The latter will then try to optimize the problem my minimizing reprojection errors to known configurations of markers, or point-to-plane metrical errors of laser points to (planar) marker surfaces.
+
+For both, the calibration of cameras and the calibration of laser range finders, known 3D reference geometry is required. We establish this reference making use of our [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) toolkit. It allows the accurate estimation of the 3D poses of configurations of optical markers given a set of camera images (from a DSLR camera for example). It uses [AprilTags](https://april.eecs.umich.edu/papers/details.php?name=olson2011tags) by Olson, that can simply be printed out and attached to walls or objects. To perform the reconstruction, you need a calibrated camera with a fixed focal length (no auto focus). The camera needs to be calibrated using the typical OpenCV camera calibration model. 
 
 # Installation
 
@@ -28,7 +34,7 @@ In Arch Linux, use:
 
 * Ceres is available as an AUR package called [ceres-solver](https://aur.archlinux.org/packages/ceres-solver/).
 
-The AprilTags dependency is automatically pulled in as a git submodule.
+The [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) dependency is automatically pulled in as a git submodule.
 
 ## Cloning
 
@@ -69,10 +75,13 @@ Our software works on *project paths*. A project path initially has to have the 
 
 ```
 my_project/.
-my_project/camera_intrinsics.json
-my_project/images/
-my_project/images/your_image_1.jpg
-my_project/images/anotherimage.png
+my_project/reconstruction.json
+my_project/calibration_data.json
+my_project/my_camera/camera_calibration.json
+my_project/my_camera/images/your_image_1.jpg
+my_project/my_camera/images/...
+my_project/my_laser/scan1.dat
+my_project/my_laser/...
 ...
 ```
 
@@ -87,23 +96,44 @@ Our software consists of a command-line tool called *multi_dof_kinematic_calibra
 multi_dof_kinematic_calibration:
 * `--help`: Shows a help text.
 * `--project-path`: Path to the aforementioned project directory.
-* `--marker_width`, `--marker-height`: The marker width/height in meters. This is a marker size that is written to the *marker_detections.json* file with every marker. It is not used in any other way by the detection right now, but we feel that this information is an essential part of the detection result, which is why we include it. The marker can be configured to be slightly non-square, which can be used to compensate for bad and slightly distorted print-outs. If you have markers with different sizes, you will have to edit the *marker_detections.json* file by hand. If you do not care about the metrical size if your reconstruction, you can simply set both the width/height to any value, say *0.1*, or simply stick to the default value.
 
-For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_reconstruction.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
+For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_results.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
 
 The tool's only parameter is the path of the reconstruction.json file, that is being written by the visual_marker_mapping tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
 
 ## Example
 
-We provide a test dataset, that you can use to test our tools. It is available [here](TODO).
+We provide a test dataset, that you can use to test our tools. It is available [here](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip).
 
 Use the following steps to perform the marker detection and 3D reconstruction (assuming you are in the root folder of this repository):
 
 ```
-wget TODO
-unzip TODO
-./build/bin/multi_dof_kinematic_calibration --project_path TODO
+wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip
+unzip ptu_d47_w_asus_xtion_ir.zip
+./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/cam1/
+./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
+
+### Output:
+
+```
+Solving full optimization problem...
+    Full optimization returned termination type 0
+    Full training reprojection error RMS: 0.815625 px
+Solving full optimization problem...done!
+
+Resulting Parameters:
+    Tick2Rad for all joints:
+        joint_0:0.000895964, joint_1:0.000918792, 
+    Joint poses:
+        joint_0:     1.10333           0           0    0.781601  0.00769075 -0.00254335   -0.623726
+        joint_1:  -1.29697         0         0  -0.43817  0.557305 -0.439311  0.551747
+        cam_joint_1:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
+Test Reprojection Error RMS: 2.50235 px
+Test Reprojection Error RMS for camera 1: 2.50235 px
+```
+
+TODO
 
 If you want to visualize the results, simply run:
 ```
@@ -126,7 +156,7 @@ Occurring rotations are represented as a unit quaternion in the order *w, x, y, 
 
 # Copyright and License
 
-TODO
+[GPL 3.0](http://www.gnu.org/licenses/gpl-3.0.en.html)
 
 # Citing
 
