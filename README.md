@@ -75,10 +75,13 @@ Our software works on *project paths*. A project path initially has to have the 
 
 ```
 my_project/.
-my_project/camera_intrinsics.json
-my_project/images/
-my_project/images/your_image_1.jpg
-my_project/images/anotherimage.png
+my_project/reconstruction.json
+my_project/calibration_data.json
+my_project/my_camera/camera_calibration.json
+my_project/my_camera/images/your_image_1.jpg
+my_project/my_camera/images/...
+my_project/my_laser/scan1.dat
+my_project/my_laser/...
 ...
 ```
 
