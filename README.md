@@ -198,8 +198,7 @@ calibration_data.json:
 }
 ```
 
-Occurring rotations are represented as a unit quaternion in the order *w, x, y, z*. Rotation and translation together define a pose that transforms points from marker/camera space to world space. The local coordinate systems are defined as follows:
-* When looking at a marker, the *x*-axis goes to the right, *y* up, and *z* points out of the marker plane.
+All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*. The local coordinate systems are defined as follows:
 * A cameras *x*-axis points to the right, *y*-axis down, and the *z*-axis in viewing direction.
 
 # Authors
