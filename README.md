@@ -2,7 +2,7 @@
 
 We are in the process of publishing our software for multi-DOF kinematic calibration. Please give us a few more days...
 
-ALL INFORMATION BELOW IS NOT FINAL
+NOTE THAT THE SOFTWARE IS NOT QUITE READY FOR PRIME TIME YET. INFORMATION BELOW IS PRELIMINARY.
 
 # Overview
 This software allows the accurate calibration of geometric/kinematic transformation hierarchies from sensor data. It is possible to calibrate/estimate
