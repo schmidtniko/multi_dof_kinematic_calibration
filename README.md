@@ -144,7 +144,59 @@ python3 visualize_reconstruction.py calibration_room1/reconstruction.json
 
 # File Formats
 
-TODO
+calibration_data.json:
+```
+{
+  "world_reference" : "reconstruction/reconstruction.json",
+  "hierarchy" : [
+    {
+      "name" : "joint_0",
+      "type" : "1_dof_joint",
+      "ticks_to_rad" : 0.00089760538,
+      "angular_noise_std_dev" : 0.00089760538,
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "base"
+    },
+    {
+      "name" : "joint_1",
+      "type" : "1_dof_joint",
+      "ticks_to_rad" : 0.00091879199999999998,
+      "angular_noise_std_dev" : 0.00091879199999999998,
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "joint_0"
+    },
+    {
+      "name" : "ir_cam_joint",
+      "type" : "pose",
+      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "joint_1"
+    }
+  ],
+  "sensors" : [
+    {
+      "sensor_id" : "1",
+      "sensor_type" : "camera",
+      "parent_joint" : "ir_cam_joint",
+      "camera_path" : "ir_cam"
+    }
+  ],
+  "calibration_frames" : [
+    {
+      "location_id" : -1,
+      "camera_image_path_1" : "images/img_0.png",
+      "joint_0_ticks" : "-1783",
+      "joint_1_ticks" : "613"
+    },
+    {
+      "location_id" : -1,
+      "camera_image_path_1" : "images/img_1.png",
+      "joint_0_ticks" : "-1640",
+      "joint_1_ticks" : "613"
+    },
+    ...
+    ]
+}
+```
 
 Occurring rotations are represented as a unit quaternion in the order *w, x, y, z*. Rotation and translation together define a pose that transforms points from marker/camera space to world space. The local coordinate systems are defined as follows:
 * When looking at a marker, the *x*-axis goes to the right, *y* up, and *z* points out of the marker plane.
