@@ -104,14 +104,14 @@ The tool has two parameters: the path of the *reconstruction.json* file, that is
 
 ## Example
 
-We provide a test dataset, that you can use to test our tools. It is available [here](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip).
+We provide a test dataset, that you can use to test our tools. It is available [here](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip).
 
 Use the following steps to perform the marker detection and 3D reconstruction (assuming you are in the root folder of this repository):
 
 ```
-wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_asus_xtion_ir.zip
-unzip ptu_d47_w_asus_xtion_ir.zip
-./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/ir_cam/
+wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
+unzip ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
+./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/ir_cam/ --marker_width 0.1285 --marker_height 0.1295
 ./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
 ```
 
