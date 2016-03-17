@@ -38,7 +38,7 @@ public:
         }
         f << "],\n";
 
-		f << "\"points\" : [";
+        f << "\"points\" : [";
         for (size_t i = 0; i < points.size(); i++)
         {
             f << "[";
@@ -50,52 +50,50 @@ public:
                 f << ",";
         }
         f << "],";
-		
-		f << "\"lines\" : [";
+
+        f << "\"lines\" : [";
         for (size_t i = 0; i < line_is_vector.size(); i++)
         {
-			f << "{";
-			f << "\"from\":[";
-            f << lines[2*i](0) << ",";
-            f << lines[2*i](1) << ",";
-            f << lines[2*i](2) << "],";
-			f << "\"to\":[";
-            f << lines[2*i+1](0) << ",";
-            f << lines[2*i+1](1) << ",";
-            f << lines[2*i+1](2) << "],";
-			f << "\"is_vector\":" << (line_is_vector[i]?"true":"false");
-			f << "}";
+            f << "{";
+            f << "\"from\":[";
+            f << lines[2 * i](0) << ",";
+            f << lines[2 * i](1) << ",";
+            f << lines[2 * i](2) << "],";
+            f << "\"to\":[";
+            f << lines[2 * i + 1](0) << ",";
+            f << lines[2 * i + 1](1) << ",";
+            f << lines[2 * i + 1](2) << "],";
+            f << "\"is_vector\":" << (line_is_vector[i] ? "true" : "false");
+            f << "}";
 
             if (i + 1 < line_is_vector.size())
                 f << ",";
         }
         f << "]";
-		
-		
 
 
         f << "}";
     }
 
-    void writePose(const Eigen::Matrix<double, 7, 1>& pose, const std::string& caption="")
-	{
-		poses.push_back(pose);
-		pose_captions.push_back(caption);
-	}
-	void addLine(const Eigen::Vector3d& a, const Eigen::Vector3d& b, bool is_vector=false)
-	{
-		lines.push_back(a);
-		lines.push_back(b);
-		line_is_vector.push_back(is_vector);
-	}
+    void addPose(const Eigen::Matrix<double, 7, 1>& pose, const std::string& caption = "")
+    {
+        poses.push_back(pose);
+        pose_captions.push_back(caption);
+    }
+    void addLine(const Eigen::Vector3d& a, const Eigen::Vector3d& b, bool is_vector = false)
+    {
+        lines.push_back(a);
+        lines.push_back(b);
+        line_is_vector.push_back(is_vector);
+    }
     void addPoint(const Eigen::Vector3d& point) { points.push_back(point); }
 
 private:
     std::vector<Eigen::Matrix<double, 7, 1> > poses;
-	std::vector<std::string> pose_captions;
+    std::vector<std::string> pose_captions;
     std::vector<Eigen::Vector3d> points;
-	std::vector<Eigen::Vector3d> lines;
-	std::vector<bool> line_is_vector;
+    std::vector<Eigen::Vector3d> lines;
+    std::vector<bool> line_is_vector;
     std::string filename;
 };
 

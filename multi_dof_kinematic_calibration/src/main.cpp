@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
         const boost::filesystem::path project_path = vm["project_path"].as<std::string>();
 
-		// Read Calibration Data
+        // Read Calibration Data
         auto calib_data = CalibrationData((project_path / "calibration_data.json").string());
         std::cout << "Read Calibration Data!" << std::endl;
         Calibrator proj(std::move(calib_data));

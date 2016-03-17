@@ -713,9 +713,9 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
             }
             else if (sensor_type == "laser_3d")
             {
-//				if (mode == OptimizationMode::SIMPLE_THEN_FULL)
-//					continue;
-				
+                //				if (mode == OptimizationMode::SIMPLE_THEN_FULL)
+                //					continue;
+
                 const auto& cur_scan
                     = calib_data.calib_frames[i].sensor_id_to_laser_scan_3d[sensor_id];
 
@@ -753,7 +753,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 	                    const double dist = mpt.z();
 #else
                         const double sqr_dist = (tag.t - ptw).squaredNorm();
-                        const double marker_radius = std::max(tag.tagWidth, tag.tagHeight) / 2.0 * sqrt(2.0);
+                        const double marker_radius
+                            = std::max(tag.tagWidth, tag.tagHeight) / 2.0 * sqrt(2.0);
 #endif
                         if ((sqr_dist < min_sqr_dist) && (sqr_dist < marker_radius * marker_radius))
                         {
@@ -788,7 +789,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
                     corresp++;
                 }
-                //std::cout << "Corresp : "<< corresp << std::endl;
+                // std::cout << "Corresp : "<< corresp << std::endl;
             }
         }
     }
@@ -1197,8 +1198,8 @@ void Calibrator::calibrate()
 
             dbg_out.writePose(
                 location, "location_" + std::to_string(calib_data.calib_frames[i].location_id));
-			
-			//std::cout << "Location: " << location.transpose() << std::endl;
+
+            // std::cout << "Location: " << location.transpose() << std::endl;
 
             last_pos = cposeInv(location).segment<3>(0);
         }
@@ -1232,7 +1233,8 @@ void Calibrator::calibrate()
 
             const auto world_to_pose = cur_chain.endEffectorPose(&parameter_blocks[0]);
             world_to_joint_poses[calib_data.joints[j].name] = world_to_pose;
-			//std::cout << "Joint pose of " << calib_data.joints[j].name << "is " << world_to_pose.transpose() << std::endl;
+            // std::cout << "Joint pose of " << calib_data.joints[j].name << "is " <<
+            // world_to_pose.transpose() << std::endl;
 
             dbg_out.writePose(world_to_pose, calib_data.joints[j].name);
 
@@ -1256,7 +1258,7 @@ void Calibrator::calibrate()
                         = calib_data.sensor_id_to_parent_joint[sensor_id];
                     auto world_to_sensor = world_to_joint_poses[parent_joint];
                     auto sensor_to_world = cposeInv<double>(world_to_sensor);
-					//std::cout << "sensor_to_world: " << sensor_to_world.transpose() << std::endl;
+                    // std::cout << "sensor_to_world: " << sensor_to_world.transpose() << std::endl;
 
                     const auto& scan
                         = calib_data.calib_frames[i].sensor_id_to_laser_scan_3d[sensor_id];

@@ -20,14 +20,20 @@ multi_dof_kinematic_calibration::Scan3D loadScan(const std::string& filename)
     int numPts;
     fread(&numPts, sizeof(int), 1, r);
     ret.points.resize(3, numPts);
-#if 0
+#if 1
     std::vector<double> tmp(4 * numPts);
     fread(&tmp[0], 4 * sizeof(double), numPts, r);
     fclose(r);
+
+    // std::ofstream tmpa("out.txt");
     for (int i = 0; i < numPts; i++)
     {
-        ret.points.col(i) << tmp[4 * i], tmp[4 * i + 1], tmp[4 * i + 2];
-         std::cout << tmp[4 * i] << " " <<  tmp[4 * i+1] << " " <<  tmp[4 * i+2] << std::endl;
+        ret.points.col(i) << tmp[4 * i + 1], -tmp[4 * i + 0], tmp[4 * i + 2];
+
+        // tmpa << ret.points.col(i).transpose() << "\n";
+
+        //         std::cout << tmp[4 * i] << " " <<  tmp[4 * i+1] << " " <<  tmp[4 * i+2] <<
+        //         std::endl;
     }
 #else
     // std::ofstream tmp("out.txt");
@@ -178,10 +184,11 @@ CalibrationData::CalibrationData(const std::string& filePath)
             for (size_t j = 0; j < detectionResultsByCamId[camera_id].images.size(); j++)
             {
                 // this is a hack and should really be ==...
-				const boost::filesystem::path df(detectionResultsByCamId[camera_id].images[j].filename);
-//				std::cout << image_path.string() << " "
-//                          << df.string()
-//                          << std::endl;
+                const boost::filesystem::path df(
+                    detectionResultsByCamId[camera_id].images[j].filename);
+                //				std::cout << image_path.string() << " "
+                //                          << df.string()
+                //                          << std::endl;
                 if (image_path.filename() == df.filename())
                 {
                     detectedImageId = static_cast<int>(j);

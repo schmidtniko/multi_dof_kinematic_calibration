@@ -10,17 +10,17 @@ namespace multi_dof_kinematic_calibration
 {
 struct Calibrator
 {
-	Calibrator(CalibrationData calib_data);
-	
+    Calibrator(CalibrationData calib_data);
+
     void calibrate();
-	
-	
-	enum class OptimizationMode
-	{
-		SIMPLE_THEN_FULL,
-		ONLY_SIMPLE,
-		ONLY_FULL
-	};
+
+
+    enum class OptimizationMode
+    {
+        SIMPLE_THEN_FULL,
+        ONLY_SIMPLE,
+        ONLY_FULL
+    };
 
     void optimizeUpToJoint(const std::set<size_t>& optimization_set, OptimizationMode mode);
 
@@ -36,17 +36,17 @@ struct Calibrator
     /////////
 
     // frame, camera -> camera model
-    std::map<std::pair<size_t, size_t>, Eigen::Matrix<double,7,1> > reconstructedPoses;
+    std::map<std::pair<size_t, size_t>, Eigen::Matrix<double, 7, 1> > reconstructedPoses;
 
     //////////
 
-//    struct DebugVis
-//    {
-//        visual_marker_mapping::Camera cam;
-//        int type = 0;
-//    };
+    //    struct DebugVis
+    //    {
+    //        visual_marker_mapping::Camera cam;
+    //        int type = 0;
+    //    };
 
-//    std::vector<DebugVis> debugVis;
+    //    std::vector<DebugVis> debugVis;
 
 
     struct JointData
@@ -56,12 +56,12 @@ struct Calibrator
         double ticks_to_rad;
     };
 
-    //Eigen::Matrix<double, 7, 1> cameraPose;
+    // Eigen::Matrix<double, 7, 1> cameraPose;
 
     std::vector<JointData> jointData;
-	
-	
-	std::map<int, Eigen::Matrix<double,7,1> > location_id_to_location;
+
+
+    std::map<int, Eigen::Matrix<double, 7, 1> > location_id_to_location;
 };
 }
 
