@@ -12,7 +12,7 @@ struct Calibrator
 {
     Calibrator(CalibrationData calib_data);
 
-    void calibrate();
+    void calibrate(const std::string& visualization_filename);
 
 
     enum class OptimizationMode

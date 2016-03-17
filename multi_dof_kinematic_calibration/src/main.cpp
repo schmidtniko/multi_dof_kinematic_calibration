@@ -43,7 +43,8 @@ int main(int argc, char* argv[])
         auto calib_data = CalibrationData((project_path / "calibration_data.json").string());
         std::cout << "Read Calibration Data!" << std::endl;
         Calibrator proj(std::move(calib_data));
-        proj.calibrate();
+		const auto vis_path = (project_path / "calibration_result_visualization.json").string();
+        proj.calibrate(vis_path);
 
         const auto export_path = (project_path / "calibration_result.json").string();
         proj.exportCalibrationResults(export_path);

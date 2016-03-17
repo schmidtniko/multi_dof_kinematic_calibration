@@ -925,7 +925,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     {
         return;
     }
-
+#if 0
     // cameraPose = camPoses[0];
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
@@ -986,6 +986,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         debugVis.push_back(dbg);
     }
 #endif
+#endif
 
     if (1)
     {
@@ -1021,13 +1022,13 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
     {
         const auto pose = jointData[j].parent_to_joint_pose;
         const pt::ptree posePt = visual_marker_mapping::matrix2PropertyTreeEigen(pose);
-		
-		const auto pose_guess = calib_data.joints[j].parent_to_joint_guess;
-		const pt::ptree poseGuessPt = visual_marker_mapping::matrix2PropertyTreeEigen(pose_guess);
+
+        const auto pose_guess = calib_data.joints[j].parent_to_joint_guess;
+        const pt::ptree poseGuessPt = visual_marker_mapping::matrix2PropertyTreeEigen(pose_guess);
 
         pt::ptree jointDataPt;
         jointDataPt.add_child("parent_to_joint_pose", posePt);
-		jointDataPt.add_child("parent_to_joint_pose_guess", poseGuessPt);
+        jointDataPt.add_child("parent_to_joint_pose_guess", poseGuessPt);
         jointDataPt.put("type", calib_data.joints[j].type);
         if (calib_data.joints[j].type == "1_dof_joint")
         {
@@ -1050,15 +1051,16 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
         pt::ptree curLocationPt;
         curLocationPt.add_child("world_to_location_pose", posePt);
         curLocationPt.put("location_id", location_id);
-		if (calib_data.optional_location_infos.count(location_id))
-		{
-			const auto& loc_info = calib_data.optional_location_infos.find(location_id)->second;
-			const auto initial_pose = loc_info.world_to_location_pose_guess;
-			const pt::ptree poseGuessPt = visual_marker_mapping::matrix2PropertyTreeEigen(initial_pose);
-			curLocationPt.add_child("world_to_location_pos_guess", poseGuessPt);
-			
-			curLocationPt.put("fixed", loc_info.fixed?"true":"false");
-		}
+        if (calib_data.optional_location_infos.count(location_id))
+        {
+            const auto& loc_info = calib_data.optional_location_infos.find(location_id)->second;
+            const auto initial_pose = loc_info.world_to_location_pose_guess;
+            const pt::ptree poseGuessPt
+                = visual_marker_mapping::matrix2PropertyTreeEigen(initial_pose);
+            curLocationPt.add_child("world_to_location_pos_guess", poseGuessPt);
+
+            curLocationPt.put("fixed", loc_info.fixed ? "true" : "false");
+        }
 
         locationPt.push_back(std::make_pair("", curLocationPt));
     }
@@ -1066,7 +1068,7 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
-void Calibrator::calibrate()
+void Calibrator::calibrate(const std::string& visualization_filename)
 {
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
@@ -1200,8 +1202,10 @@ void Calibrator::calibrate()
 
     //////////////////////////////////
     // visualize results
+    if (visualization_filename == "")
+        return;
 
-    DebugOutput dbg_out("vis.json");
+    DebugOutput dbg_out(visualization_filename);
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
         const std::vector<int>& joint_config = calib_data.calib_frames[i].joint_config;
@@ -1278,6 +1282,7 @@ void Calibrator::calibrate()
 
 #if 1 // Show sensor data
         if (i == 0)
+        {
             for (const auto& sensor_id_to_type : calib_data.sensor_id_to_type)
             {
                 const int sensor_id = sensor_id_to_type.first;
@@ -1299,47 +1304,9 @@ void Calibrator::calibrate()
                     }
                 }
             }
+        }
 #endif
-
-
-        //        const auto& jointConfig = calib_data.calib_frames[i].joint_config;
-
-        //        Eigen::Matrix<double, 7, 1> root;
-        //        root << 0, 0, 0, 1, 0, 0, 0;
-
-        //        for (size_t pj = 0; pj < parent_joints.size(); pj++)
-        //        {
-        //            const size_t j = parent_joints[pj];
-        //            root = poseAdd(root, poseInverse(jointData[j].joint_to_parent_pose));
-
-        //            const double jointAngle = jointConfig[j] * jointData[j].ticks_to_rad;
-        //            // double t = joint_positions[j][indexToDistinctJoint[i][j]];
-        //            Eigen::Matrix<double, 7, 1> tiltRot;
-        //            tiltRot << 0, 0, 0, cos(jointAngle / 2.0), 0, 0, sin(jointAngle / 2.0);
-        //            root = poseAdd(root, tiltRot);
-
-        //            // auto invRet = poseInverse(root);
-        //            //            DebugVis dbg;
-        //            //            dbg.cam.q = invRet.segment<4>(3);
-        //            //            dbg.cam.t = invRet.segment<3>(0);
-        //            //            dbg.type = 1;
-        //            // debugVis.push_back(dbg);
     }
-
-// std::cout << "NumCamPoses" << camPoses.size() << std::endl;
-#if 0
-	        for (size_t c = 0; c < camPoses.size(); c++)
-	        {
-	            auto ret = poseAdd(root, poseInverse(camPoses[c]));
-	            // std::cout << ret.transpose() << std::endl;
-	            auto invRet = poseInverse(ret);
-	            DebugVis dbg;
-	            dbg.cam.q = invRet.segment<4>(3);
-	            dbg.cam.t = invRet.segment<3>(0);
-	
-	            debugVis.push_back(dbg);
-	        }
-#endif
 }
 //-----------------------------------------------------------------------------
 bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calibration_frame_id,
