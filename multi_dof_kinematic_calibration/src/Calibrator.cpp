@@ -1115,25 +1115,26 @@ void Calibrator::calibrate()
     frontier.insert(start_joint);
 
     std::set<size_t> optimization_set;
-    optimization_set.insert(start_joint);
+    //optimization_set.insert(start_joint);
     while (!frontier.empty())
     {
-        std::function<void(size_t, bool)> expandToNext1DofJoint = [&](size_t j, bool first)
+        std::function<void(size_t)> expandToNext1DofJoint = [&](size_t j)
         {
-            optimization_set.insert(j);
-            if ((calib_data.joints[j].type == "1_dof_joint") && (!first))
+            if ((calib_data.joints[j].type == "1_dof_joint") && (optimization_set.count(j)==0))
             {
                 // ptimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
+                optimization_set.insert(j);
                 frontier.insert(j);
                 return;
             }
+            optimization_set.insert(j);
             for (auto cj : joint_to_children[j])
-                expandToNext1DofJoint(cj, false);
+                expandToNext1DofJoint(cj);
         };
         auto tmp_frontier = frontier;
         frontier.clear();
         for (size_t f : tmp_frontier)
-            expandToNext1DofJoint(f, true);
+            expandToNext1DofJoint(f);
 
 
         std::cout << "Estimating joints: ";
