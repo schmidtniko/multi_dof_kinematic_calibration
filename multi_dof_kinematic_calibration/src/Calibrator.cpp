@@ -1120,7 +1120,7 @@ void Calibrator::calibrate()
     {
         std::function<void(size_t)> expandToNext1DofJoint = [&](size_t j)
         {
-            if ((calib_data.joints[j].type == "1_dof_joint") && (optimization_set.count(j)==0))
+            if ((calib_data.joints[j].type == "1_dof_joint") && (!optimization_set.count(j)))
             {
                 // ptimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
                 optimization_set.insert(j);
