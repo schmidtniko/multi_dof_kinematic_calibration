@@ -104,9 +104,9 @@ CalibrationData::CalibrationData(const std::string& filePath)
         }
         else
             throw std::runtime_error("Unknown joint type: " + inf.type);
-        inf.joint_to_parent_guess
+        inf.parent_to_joint_guess
             = visual_marker_mapping::propertyTree2EigenMatrix<Eigen::Matrix<double, 7, 1> >(
-                jointNode.second.get_child("joint_to_parent_pose_guess"));
+                jointNode.second.get_child("parent_to_joint_pose_guess"));
 
         inf.parent = jointNode.second.get<std::string>("parent");
 

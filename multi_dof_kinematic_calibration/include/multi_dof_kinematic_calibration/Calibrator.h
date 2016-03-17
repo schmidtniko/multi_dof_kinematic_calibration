@@ -40,7 +40,7 @@ struct Calibrator
 
     struct JointData
     {
-        Eigen::Matrix<double, 7, 1> joint_to_parent_pose;
+        Eigen::Matrix<double, 7, 1> parent_to_joint_pose;
         // std::vector<double> joint_positions;
         double ticks_to_rad;
     };

@@ -26,7 +26,7 @@ struct JointInfo
 
     std::string parent;
 
-    Eigen::Matrix<double, 7, 1> joint_to_parent_guess;
+    Eigen::Matrix<double, 7, 1> parent_to_joint_guess;
 
     bool fixed;
 };
