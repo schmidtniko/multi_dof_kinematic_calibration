@@ -437,6 +437,19 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                 problem_full.AddParameterBlock(&location(0), 3);
                 problem_full.AddParameterBlock(&location(3), 4, quaternion_parameterization2);
 
+                if (calib_data.optional_location_infos.count(
+                        calib_data.calib_frames[i].location_id))
+                {
+                    if (calib_data.optional_location_infos[calib_data.calib_frames[i].location_id]
+                            .fixed)
+                    {
+                        problem_simple.SetParameterBlockConstant(&location(0));
+                        problem_simple.SetParameterBlockConstant(&location(3));
+                        problem_full.SetParameterBlockConstant(&location(0));
+                        problem_full.SetParameterBlockConstant(&location(3));
+                    }
+                }
+
                 initialized_locations.insert(calib_data.calib_frames[i].location_id);
             }
         }
@@ -1011,18 +1024,33 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
 
         pt::ptree jointDataPt;
         jointDataPt.add_child("parent_to_joint", posePt);
-		jointDataPt.put("type", calib_data.joints[j].type);
-		if (calib_data.joints[j].type=="1_dof_joint")
-		{
-			jointDataPt.put("ticks_to_rad", jointData[j].ticks_to_rad);
-		}
+        jointDataPt.put("type", calib_data.joints[j].type);
+        if (calib_data.joints[j].type == "1_dof_joint")
+        {
+            jointDataPt.put("ticks_to_rad", jointData[j].ticks_to_rad);
+        }
         jointDataPt.put("name", calib_data.joints[j].name);
-		jointDataPt.put("parent", calib_data.joints[j].parent);
-		jointDataPt.put("fixed", calib_data.joints[j].fixed?"true":"false");
+        jointDataPt.put("parent", calib_data.joints[j].parent);
+        jointDataPt.put("fixed", calib_data.joints[j].fixed ? "true" : "false");
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
     }
     root.add_child("hierarchy", kinematicChainPt);
+    pt::ptree locationPt;
+    for (const auto& cur_location_id_to_location : location_id_to_location)
+    {
+        const int location_id = cur_location_id_to_location.first;
+        const auto pose = cur_location_id_to_location.second;
+        const pt::ptree posePt = visual_marker_mapping::matrix2PropertyTreeEigen(pose);
+
+        pt::ptree curLocationPt;
+        curLocationPt.add_child("world_to_location", posePt);
+        curLocationPt.put("location_id", location_id);
+        // curLocationPt.put("fixed", calib_data.joints[j].fixed?"true":"false");
+
+        locationPt.push_back(std::make_pair("", curLocationPt));
+    }
+    root.add_child("locations", locationPt);
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
@@ -1030,10 +1058,19 @@ void Calibrator::calibrate()
 {
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
-        if (calib_data.calib_frames[i].location_id != -1)
+        const int location_id = calib_data.calib_frames[i].location_id;
+        if (location_id != -1)
         {
-            // HACK: This should be configurable
-            location_id_to_location[calib_data.calib_frames[i].location_id] << 0, 0, 0, 1, 0, 0, 0;
+            if (!calib_data.optional_location_infos.count(location_id))
+            {
+                location_id_to_location[location_id] << 0, 0, 0, 1, 0, 0, 0;
+            }
+            else
+            {
+                const auto loc_pose
+                    = calib_data.optional_location_infos[location_id].world_to_location_pose_guess;
+                location_id_to_location[location_id] = loc_pose;
+            }
         }
 
         for (const auto& id_to_cam_model : calib_data.cameraModelById)

@@ -121,6 +121,34 @@ CalibrationData::CalibrationData(const std::string& filePath)
         joints.emplace_back(std::move(inf));
     }
 
+    auto locations = rootNode.get_child_optional("locations");
+    if (locations)
+    {
+        for (const auto& locationNode : *locations)
+        {
+            LocationInfo inf;
+            auto pc = locationNode.second.get_child_optional("world_to_location_pose_guess");
+            if (pc)
+            {
+                inf.world_to_location_pose_guess
+                    = visual_marker_mapping::propertyTree2EigenMatrix<Eigen::Matrix<double, 7, 1> >(
+                        *pc);
+            }
+            else
+            {
+                inf.world_to_location_pose_guess << 0, 0, 0, 1, 0, 0, 0;
+            }
+            const auto fix = locationNode.second.get_optional<std::string>("fixed");
+            if (fix)
+                inf.fixed = (*fix == "true");
+            else
+                inf.fixed = false;
+
+            const int id = locationNode.second.get<int>("id");
+            optional_location_infos.emplace(id, inf);
+        }
+    }
+
     std::map<int, visual_marker_mapping::DetectionResult> detectionResultsByCamId;
     for (const auto& cameraNode : rootNode.get_child("sensors"))
     {

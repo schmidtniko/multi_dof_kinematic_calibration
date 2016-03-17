@@ -30,6 +30,11 @@ struct JointInfo
 
     bool fixed;
 };
+struct LocationInfo
+{
+	Eigen::Matrix<double, 7, 1> world_to_location_pose_guess;
+	bool fixed;
+};
 struct CalibrationFrame
 {
     int location_id; // -1 for no location
@@ -59,6 +64,8 @@ struct CalibrationData
 
     std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
+	
+	std::map<int, LocationInfo> optional_location_infos;
 };
 }
 
