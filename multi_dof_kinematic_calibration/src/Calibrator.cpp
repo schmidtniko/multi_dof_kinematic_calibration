@@ -1196,7 +1196,7 @@ void Calibrator::calibrate()
             parameter_blocks.push_back(&location(0));
             parameter_blocks.push_back(&location(3));
 
-            dbg_out.writePose(
+            dbg_out.addPose(
                 location, "location_" + std::to_string(calib_data.calib_frames[i].location_id));
 
             // std::cout << "Location: " << location.transpose() << std::endl;
@@ -1236,7 +1236,7 @@ void Calibrator::calibrate()
             // std::cout << "Joint pose of " << calib_data.joints[j].name << "is " <<
             // world_to_pose.transpose() << std::endl;
 
-            dbg_out.writePose(world_to_pose, calib_data.joints[j].name);
+            dbg_out.addPose(world_to_pose, calib_data.joints[j].name);
 
             const Eigen::Vector3d cur_pos = cposeInv(world_to_pose).segment<3>(0);
 
