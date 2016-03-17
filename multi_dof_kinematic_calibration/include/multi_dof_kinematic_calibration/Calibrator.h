@@ -38,25 +38,12 @@ struct Calibrator
     // frame, camera -> camera model
     std::map<std::pair<size_t, size_t>, Eigen::Matrix<double, 7, 1> > reconstructedPoses;
 
-    //////////
-
-    //    struct DebugVis
-    //    {
-    //        visual_marker_mapping::Camera cam;
-    //        int type = 0;
-    //    };
-
-    //    std::vector<DebugVis> debugVis;
-
-
     struct JointData
     {
         Eigen::Matrix<double, 7, 1> joint_to_parent_pose;
         // std::vector<double> joint_positions;
         double ticks_to_rad;
     };
-
-    // Eigen::Matrix<double, 7, 1> cameraPose;
 
     std::vector<JointData> jointData;
 

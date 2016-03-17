@@ -1004,46 +1004,25 @@ void Calibrator::exportCalibrationResults(const std::string& filePath) const
     pt::ptree root;
 
     pt::ptree kinematicChainPt;
-    size_t j = 0;
-    for (const auto& joint : jointData)
+    for (size_t j = 0; j < calib_data.joints.size(); ++j)
     {
-        const Eigen::Vector3d translation = joint.joint_to_parent_pose.head(3);
-        const Eigen::Vector4d rotation = joint.joint_to_parent_pose.segment<4>(3);
-        const pt::ptree translationPt
-            = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
-        const pt::ptree rotationPt = visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
+        const auto pose = jointData[j].joint_to_parent_pose;
+        const pt::ptree posePt = visual_marker_mapping::matrix2PropertyTreeEigen(pose);
 
         pt::ptree jointDataPt;
-        jointDataPt.add_child("translation", translationPt);
-        jointDataPt.add_child("rotation", rotationPt);
-        jointDataPt.put("ticks_to_rad", joint.ticks_to_rad);
+        jointDataPt.add_child("parent_to_joint", posePt);
+		jointDataPt.put("type", calib_data.joints[j].type);
+		if (calib_data.joints[j].type=="1_dof_joint")
+		{
+			jointDataPt.put("ticks_to_rad", jointData[j].ticks_to_rad);
+		}
         jointDataPt.put("name", calib_data.joints[j].name);
+		jointDataPt.put("parent", calib_data.joints[j].parent);
+		jointDataPt.put("fixed", calib_data.joints[j].fixed?"true":"false");
 
         kinematicChainPt.push_back(std::make_pair("", jointDataPt));
-        j++;
     }
-    root.add_child("kinematic_chain", kinematicChainPt);
-    pt::ptree cameraPt;
-    for (const auto& id_to_cam_model : calib_data.cameraModelById)
-    {
-        // const Eigen::Vector3d translation = cameraPose.head(3);
-        // const Eigen::Vector4d rotation = cameraPose.segment<4>(3);
-
-        //        const pt::ptree translationPt
-        //            = visual_marker_mapping::matrix2PropertyTreeEigen(translation);
-        //        const pt::ptree rotationPt =
-        //        visual_marker_mapping::matrix2PropertyTreeEigen(rotation);
-
-        //        pt::ptree camDataPt;
-        //        camDataPt.add_child("translation", translationPt);
-        //        camDataPt.add_child("rotation", rotationPt);
-        //        camDataPt.put("id", id_to_cam_model.first);
-
-        //        cameraPt.push_back(std::make_pair("", camDataPt));
-    }
-    root.add_child("camera_poses", cameraPt);
-
-
+    root.add_child("hierarchy", kinematicChainPt);
     boost::property_tree::write_json(filePath, root);
 }
 //-----------------------------------------------------------------------------
@@ -1115,7 +1094,7 @@ void Calibrator::calibrate()
     frontier.insert(start_joint);
 
     std::set<size_t> optimization_set;
-    //optimization_set.insert(start_joint);
+    // optimization_set.insert(start_joint);
     while (!frontier.empty())
     {
         std::function<void(size_t)> expandToNext1DofJoint = [&](size_t j)
