@@ -111,8 +111,8 @@ Use the following steps to perform the marker detection and 3D reconstruction (a
 ```
 wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
 unzip ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
-./build/bin/visual_marker_detection --project_path ptu_d47_w_asus_xtion_ir/ir_cam/ --marker_width 0.1285 --marker_height 0.1295
-./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_asus_xtion_ir
+./build/bin/visual_marker_detection --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1/ir_cam/ --marker_width 0.1285 --marker_height 0.1295
+./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1
 ```
 
 ### Output:
