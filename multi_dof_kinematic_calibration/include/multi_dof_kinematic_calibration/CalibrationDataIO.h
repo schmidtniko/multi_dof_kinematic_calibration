@@ -37,7 +37,7 @@ struct CalibrationFrame
     std::vector<int> joint_config; // jointName --> {ticks}
 
     std::map<int, std::map<std::uint32_t, Eigen::Vector2d> > cam_id_to_observations;
-	std::map<int, std::shared_ptr<Scan3D> > sensor_id_to_laser_scan_3d;
+    std::map<int, std::shared_ptr<Scan3D> > sensor_id_to_laser_scan_3d;
 };
 
 
@@ -47,8 +47,8 @@ struct CalibrationData
 
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
     std::vector<int> laser_sensor_ids;
-	
-	std::map<int, std::string> sensor_id_to_type;
+
+    std::map<int, std::string> sensor_id_to_type;
 
     std::vector<CalibrationFrame> calib_frames;
     std::vector<JointInfo> joints;
@@ -58,7 +58,7 @@ struct CalibrationData
     std::map<int, std::string> sensor_id_to_parent_joint;
 
     std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
-	std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
+    std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
 };
 }
 

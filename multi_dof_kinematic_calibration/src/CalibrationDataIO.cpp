@@ -14,27 +14,19 @@ namespace
 multi_dof_kinematic_calibration::Scan3D loadScan(const std::string& filename)
 {
     multi_dof_kinematic_calibration::Scan3D ret;
-    FILE* r = fopen(filename.c_str(), "rb");
+    FILE* r = fopen((filename).c_str(), "rb");
     if (!r)
         throw std::runtime_error("Could not open " + filename);
-    int numPts;
-    fread(&numPts, sizeof(int), 1, r);
+    std::uint32_t numPts;
+    fread(&numPts, sizeof(std::uint32_t), 1, r);
     ret.points.resize(3, numPts);
 #if 1
     std::vector<double> tmp(4 * numPts);
     fread(&tmp[0], 4 * sizeof(double), numPts, r);
     fclose(r);
 
-    // std::ofstream tmpa("out.txt");
-    for (int i = 0; i < numPts; i++)
-    {
-        ret.points.col(i) << tmp[4 * i + 1], -tmp[4 * i + 0], tmp[4 * i + 2];
-
-        // tmpa << ret.points.col(i).transpose() << "\n";
-
-        //         std::cout << tmp[4 * i] << " " <<  tmp[4 * i+1] << " " <<  tmp[4 * i+2] <<
-        //         std::endl;
-    }
+    for (size_t i = 0; i < numPts; i++)
+        ret.points.col(i) << tmp[4 * i + 0], tmp[4 * i + 1], tmp[4 * i + 2];
 #else
     // std::ofstream tmp("out.txt");
     for (int i = 0; i < numPts; i++)
@@ -45,12 +37,26 @@ multi_dof_kinematic_calibration::Scan3D loadScan(const std::string& filename)
         //		for (int f=0;f<8;f++)
         //			std::cout << floats[f] << " ";
         //		std::cout << std::endl;
-        ret.points.col(i) << floats[1], -floats[0], floats[2];
+        // ret.points.col(i) << floats[1], -floats[0], floats[2];
+        ret.points.col(i) << floats[0], floats[1], floats[2];
         // std::cout << ret.points.col(i).transpose() << std::endl;
         // tmp << ret.points.col(i).transpose() << std::endl;
     }
     fclose(r);
 #endif
+    //	{
+    //	FILE*w=fopen((filename).c_str(),"w");
+    //	fwrite(&numPts,4,1,w);
+    //	for (int i=0;i<numPts;i++)
+    //	{
+    //		Eigen::Vector4d tmp;
+    //		tmp.segment<3>(0)=ret.points.col(i);
+    //		tmp(3)=0;
+
+    //		fwrite(&tmp(0),sizeof(double)*4,1,w);
+    //	}
+    //	fclose(w);
+    //	}
     return ret;
 }
 }
