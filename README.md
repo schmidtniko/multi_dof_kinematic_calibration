@@ -75,13 +75,13 @@ It should be possible to build our software on Windows, given that we do not use
 
 ## Preliminaries
 
-Our software works on *project paths*. A project path initially has to have the following layout:
-
+Our software works on *project paths*. A project path typically has a layout similar to to this:
 ```
 my_project/.
 my_project/calibration_data.json
-my_project/reconstruction/reconstruction.json
+my_project/my_reconstruction/reconstruction.json
 my_project/my_camera/camera_calibration.json
+my_project/my_camera/marker_detections.json
 my_project/my_camera/images/your_image_1.jpg
 my_project/my_camera/images/...
 my_project/my_laser/scan1.dat
@@ -89,10 +89,10 @@ my_project/my_laser/...
 ...
 ```
 
-* The file *reconstruction.json* contains the reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the [README file](https://github.com/cfneuhaus/visual_marker_mapping/blob/master/README.md) in that project for information about this process.
-* The file *calibration_data.json* is the main file that describes the calibration problem to be solved. See [File Formats](#file-formats) section on how to create this one.
+* The file *reconstruction.json* contains the marker-based 3D reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the [README file](https://github.com/cfneuhaus/visual_marker_mapping/blob/master/README.md) in that project for information about this process.
+* The file *calibration_data.json* is the main file that describes the calibration problem to be solved. We provide a number of  [examples](#example) that show how to create this one.
 * The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. The given folder- and file names only serve as an example.
-* After completion, our tool writes a *calibration_result_visualization.json* file to the current directory. Which, together with the *reconstruction.json* file can be used to visualize the resulting transformation hierarchy.
+* After completion, our tool write out two files: *calibration_result.json* and *calibration_result_visualization.json*. The second file, can be used in combination with the *reconstruction.json* file, to visualize the results of the optimization using the included visualize_results.py tool.
 
 ## Running
 
@@ -104,7 +104,7 @@ multi_dof_kinematic_calibration:
 
 For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_results.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
 
-The tool has two parameters: the path of the *reconstruction.json* file, that is being written by the visual_marker_mapping tool upon completion, and the path to the *vis.json* file that is written by the multi_dof_kinematic_calibration tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
+The tool has two parameters: the path of the *reconstruction.json* file, that is being written by the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool upon completion, and the path to the *calibration_visualization_result.json* file that is written by the multi_dof_kinematic_calibration tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
 
 ## Example
 
@@ -154,10 +154,9 @@ If you want to visualize the results, simply run:
 python visualize_results.py calibration_room_1/reconstruction.json calibration_result_visualization.json
 ```
 
+###  Analysis
 
-# File Formats
-
-calibration_data.json:
+The sample contains a calibration_data.json file, which looks as follows:
 ```
 {
   "world_reference" : "calibration_room_1/reconstruction.json",
