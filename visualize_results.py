@@ -252,9 +252,16 @@ class Game(object):
         self.points=[]
         self.lines=[]
         if len(sys.argv)>=2:
-            self.load_reconstruction_results(sys.argv[1])
-        if len(sys.argv)>=3:
-            self.load_calibration_results(sys.argv[2])
+            calib_data_file = sys.argv[1] + "/calibration_data.json"
+            reconstruction_file = ""
+            with open(calib_data_file) as f:    
+                data = json.load(f)
+                reconstruction_file = data["world_reference"]
+            calibration_results_file = sys.argv[1] + "/calibration_result_visualization.json"
+            if os.path.isfile(reconstruction_file):
+                self.load_reconstruction_results(reconstruction_file)
+            if os.path.isfile(calibration_results_file):
+                self.load_calibration_results(calibration_results_file)
 
         self.dl=-1
 
