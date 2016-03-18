@@ -120,18 +120,18 @@ unzip ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
 ```
 Solving full optimization problem...
     Full optimization returned termination type 0
-    Full training reprojection error RMS: 0.815625 px
+    Full training reprojection error RMS: 0.840787 px
 Solving full optimization problem...done!
 
 Resulting Parameters:
     Tick2Rad for all joints:
-        joint_0:0.000895964, joint_1:0.000918792, 
+        pan_joint:0.000895116, tilt_joint:0.000919349, 
     Joint poses:
-        joint_0:     1.10333           0           0    0.781601  0.00769075 -0.00254335   -0.623726
-        joint_1:  -1.29697         0         0  -0.43817  0.557305 -0.439311  0.551747
-        ir_cam_joint:  0.00776045   0.0592888 -0.00959563    0.490016   -0.505044    0.489606    -0.51488
-Test Reprojection Error RMS: 2.50235 px
-Test Reprojection Error RMS for camera 1: 2.50235 px
+        pan_joint:    1.10492          0          0    0.78117  0.0077221 -0.0024885  -0.624265
+        tilt_joint:   1.29675         0         0  0.550994 -0.439112 -0.557578  0.438968
+        ir_cam_joint:  0.00844504   0.0594558 -0.00874979    0.515369    0.489033    0.505573    0.489529
+Test Reprojection Error RMS: 2.51105 px
+Test Reprojection Error RMS for camera 1: 2.51105 px
 ```
 
 The tool prints the estimated transformations for all of the joints/transformations. All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*.
