@@ -126,7 +126,7 @@ Alternatively, we provide a Makefile that performs these steps. Use
 cd ptu_d47_w_xtion_ir_WRT_calibration_room_1
 make
 ```
-to run it. For this to work, you need to have to have sourced the *build/setup.sh* file, as explained in the [Building](Building) section.
+to run it. For this to work, you need to have to have sourced the *build/setup.sh* file, as explained in the [Building](#building) section.
 
 
 ### Output:
