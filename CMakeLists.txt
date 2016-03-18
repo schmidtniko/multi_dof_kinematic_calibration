@@ -32,3 +32,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(multi_dof_kinematic_calibration)
 add_subdirectory(visual_marker_mapping)
+
+configure_file(util/setup.sh setup.sh COPYONLY)
+configure_file(visualize_results.py bin/visualize_results.py COPYONLY)
