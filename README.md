@@ -92,7 +92,7 @@ my_project/my_laser/...
 * The file *reconstruction.json* contains the marker-based 3D reference geometry. It needs to be created using the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool. Please refer to the [README file](https://github.com/cfneuhaus/visual_marker_mapping/blob/master/README.md) in that project for information about this process.
 * The file *calibration_data.json* is the main file that describes the calibration problem to be solved. We provide a number of  [examples](#example) that show how to create this one.
 * The folders *my_camera* and *my_laser* depend on the concrete sensor setup that is being optimized. The given folder- and file names only serve as an example.
-* After completion, our tool write out two files: *calibration_result.json* and *calibration_result_visualization.json*. The second file, can be used in combination with the *reconstruction.json* file, to visualize the results of the optimization using the included visualize_results.py tool.
+* After completion, our tool write out two files: *calibration_result.json* and *calibration_result_visualization.json*. The first one contains the actual calibration results. The second one contains special information that is read by our visualization tool to visualize the results.
 
 ## Running
 
@@ -104,7 +104,7 @@ multi_dof_kinematic_calibration:
 
 For visualization of the results in 3D, we also include a Python (2.7/3.0) script called "visualize_results.py". It is based on *pygame*, *OpenGL*, *GLU*, *GLUT*, *numpy*, and you may need to install the corresponding Python packages for your distribution in order to be able to run it.
 
-The tool has two parameters: the path of the *reconstruction.json* file, that is being written by the [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) tool upon completion, and the path to the *calibration_visualization_result.json* file that is written by the multi_dof_kinematic_calibration tool upon completion. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
+The tools only parameter is the project path. The camera can be controlled using W, S, A, D. The mouse can be used to look around by holding the left mouse button. The camera speed can be increased by holding space.
 
 ## Example
 
@@ -151,7 +151,7 @@ The tool prints the estimated transformations for all of the joints/transformati
 
 If you want to visualize the results, simply run:
 ```
-python visualize_results.py calibration_room_1/reconstruction.json calibration_result_visualization.json
+python visualize_results.py .
 ```
 
 ###  Analysis
