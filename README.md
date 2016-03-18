@@ -153,7 +153,7 @@ The tool prints the estimated transformations for all of the joints/transformati
 
 If you want to visualize the results, simply run:
 ```
-python3 visualize_results.py ptu_d47_w_xtion_ir_WRT_calibration_room_1/calibration_room_1/reconstruction.json ptu_d47_w_xtion_ir_WRT_calibration_room_1/calibration_result_visualization.json
+python visualize_results.py calibration_room_1/reconstruction.json calibration_result_visualization.json
 ```
 
 
