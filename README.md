@@ -63,6 +63,12 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j5
 ```
 
+In order to get easy access to the built binaries, we provide a ROS-style setup.sh file, that adds the build/bin directory to your PATH environment variable. Use
+```
+source build/setup.sh
+```
+to run it. If you prefer not to do this step, you obviously need to provide the full path to the binaries, when running the applications.
+
 ### Windows
 
 It should be possible to build our software on Windows, given that we do not use any platform specific features, but so far we have not attempted to build it there. Please let us know if you run into problems doing this.
@@ -111,9 +117,17 @@ Use the following steps to perform the marker detection and 3D reconstruction (a
 ```
 wget https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
 unzip ptu_d47_w_xtion_ir_WRT_calibration_room_1.zip
-./build/bin/visual_marker_detection --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1/ir_cam/ --marker_width 0.1285 --marker_height 0.1295
-./build/bin/multi_dof_kinematic_calibration --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1
+visual_marker_detection --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1/ir_cam/ --marker_width 0.1285 --marker_height 0.1295
+multi_dof_kinematic_calibration --project_path ptu_d47_w_xtion_ir_WRT_calibration_room_1
 ```
+
+Alternatively, we provide a Makefile that performs these steps. Use
+```
+cd ptu_d47_w_xtion_ir_WRT_calibration_room_1
+make
+```
+to run it. For this to work, you need to have to have sourced the *build/setup.sh* file, as explained in the [Building](Building) section.
+
 
 ### Output:
 
