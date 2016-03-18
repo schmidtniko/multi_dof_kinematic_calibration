@@ -147,29 +147,29 @@ python3 visualize_results.py ptu_d47_w_xtion_ir_WRT_calibration_room_1/calibrati
 calibration_data.json:
 ```
 {
-  "world_reference" : "reconstruction/reconstruction.json",
+  "world_reference" : "calibration_room_1/reconstruction.json",
   "hierarchy" : [
     {
-      "name" : "joint_0",
+      "name" : "pan_joint",
       "type" : "1_dof_joint",
       "ticks_to_rad" : 0.00089760538,
       "angular_noise_std_dev" : 0.00089760538,
-      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent_to_joint_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
       "parent" : "base"
     },
     {
-      "name" : "joint_1",
+      "name" : "tilt_joint",
       "type" : "1_dof_joint",
       "ticks_to_rad" : 0.00091879199999999998,
       "angular_noise_std_dev" : 0.00091879199999999998,
-      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
-      "parent" : "joint_0"
+      "parent_to_joint_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "pan_joint"
     },
     {
       "name" : "ir_cam_joint",
       "type" : "pose",
-      "joint_to_parent_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
-      "parent" : "joint_1"
+      "parent_to_joint_pose_guess" : [0, 0, 0, 1, 0, 0, 0],
+      "parent" : "tilt_joint"
     }
   ],
   "sensors" : [
@@ -184,17 +184,17 @@ calibration_data.json:
     {
       "location_id" : -1,
       "camera_image_path_1" : "images/img_0.png",
-      "joint_0_ticks" : "-1783",
-      "joint_1_ticks" : "613"
+      "pan_joint_ticks" : "-1783",
+      "tilt_joint_ticks" : "613"
     },
     {
       "location_id" : -1,
       "camera_image_path_1" : "images/img_1.png",
-      "joint_0_ticks" : "-1640",
-      "joint_1_ticks" : "613"
+      "pan_joint_ticks" : "-1640",
+      "tilt_joint_ticks" : "613"
     },
-    ...
-    ]
+    ..
+   ]
 }
 ```
 
