@@ -215,6 +215,13 @@ TODO: Add more detailed description here.
 All poses transform from a joint's parent to joint space. Poses a given in the order *x*, *y*, *z*, *qw*, *qx*, *qy*, *qz*. The local coordinate systems are defined as follows:
 * A cameras *x*-axis points to the right, *y*-axis down, and the *z*-axis in viewing direction.
 
+
+###  More examples
+
+We provide a number additional examples that can be used to understand the capabilities of the system.
+
+TODO
+
 # Authors
 
 * Frank Neuhaus (fneuhaus_AT_uni-koblenz.de)
