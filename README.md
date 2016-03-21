@@ -127,7 +127,6 @@ make
 ```
 to run it. For this to work, you need to have to have sourced the *build/setup.sh* file, as explained in the [Building](#building) section.
 
-
 ### Output:
 
 ```
@@ -220,7 +219,15 @@ All poses transform from a joint's parent to joint space. Poses a given in the o
 
 We provide a number additional examples that can be used to understand the capabilities of the system.
 
-TODO
+#### Synthetic Dataset with Ground Truth
+
+In order to evaluate our approach, we created a synthetic dataset with simulated robotic arms with 3 and 4 DOF. We simulate varying amounts of noises (0 deg, 0.025 deg, 0.05 deg, 0.1 deg and 1 deg) on the actuator positioning, and render a 3D marker configuration from the simulated camera's pose. 
+
+We provide two variants of our dataset:
+* [This one](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/synthetic_full.zip) contains all of the mentioned data, including the actual renderings.
+* In [this one](https://agas.uni-koblenz.de/data/datasets/multi_dof_kinematic_calibration/synthetic_detections_only.zip), markers have already been extracted from the camera images using our *visual_marker_detection* tool. The images itself are not included.
+
+To run our software on any of the datasets, you can proceed in exactly the same way as it is done in the previous example. Each dataset in the archive contains a Makefile that performs the processing.
 
 # Authors
 
