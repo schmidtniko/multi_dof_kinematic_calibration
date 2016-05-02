@@ -5,6 +5,11 @@
 #include "visual_marker_mapping/TagReconstructor.h"
 #include "visual_marker_mapping/TagDetector.h"
 #include "CalibrationDataIO.h"
+#include <Eigen/Core>
+#include <set>
+#include <vector>
+#include <string>
+#include <map>
 
 namespace multi_dof_kinematic_calibration
 {
@@ -40,7 +45,8 @@ struct Calibrator
 
     struct JointData
     {
-        Eigen::Matrix<double, 7, 1> parent_to_joint_pose;
+        Eigen::Matrix<double, 7, 1>  parent_to_joint_pose;
+
         // std::vector<double> joint_positions;
         double ticks_to_rad;
     };

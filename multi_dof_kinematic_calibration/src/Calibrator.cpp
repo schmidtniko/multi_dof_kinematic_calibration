@@ -262,15 +262,15 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     else if (mode == OptimizationMode::ONLY_FULL)
         std::cout << "Performing full optimization only" << std::endl;
 
-    auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
-    {
-        return cposeInv<double>(pose);
-    };
-    auto poseAdd = [](const Eigen::Matrix<double, 7, 1>& x,
-        const Eigen::Matrix<double, 7, 1>& d) -> Eigen::Matrix<double, 7, 1>
-    {
-        return cposeAdd<double>(x, d);
-    };
+//    auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
+//    {
+//        return cposeInv<double>(pose);
+//    };
+//    auto poseAdd = [](const Eigen::Matrix<double, 7, 1>& x,
+//        const Eigen::Matrix<double, 7, 1>& d) -> Eigen::Matrix<double, 7, 1>
+//    {
+//        return cposeAdd<double>(x, d);
+//    };
 
     auto pathFromRootToJoint = [this](const std::string& start) -> std::vector<size_t>
     {
