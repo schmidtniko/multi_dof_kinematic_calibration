@@ -5,10 +5,10 @@
 #include "visual_marker_mapping/TagDetector.h"
 #include "visual_marker_mapping/TagReconstructor.h"
 
-#include <vector>
 #include <functional>
-#include <opencv2/opencv.hpp>
 #include <memory>
+#include <opencv2/opencv.hpp>
+#include <vector>
 
 namespace multi_dof_kinematic_calibration
 {
@@ -32,8 +32,8 @@ struct JointInfo
 };
 struct LocationInfo
 {
-	Eigen::Matrix<double, 7, 1> world_to_location_pose_guess;
-	bool fixed;
+    Eigen::Matrix<double, 7, 1> world_to_location_pose_guess;
+    bool fixed;
 };
 struct CalibrationFrame
 {
@@ -48,7 +48,7 @@ struct CalibrationFrame
 
 struct CalibrationData
 {
-    CalibrationData(const std::string& filePath);
+    CalibrationData(const std::string& filePath, double laser_noise_std_dev = 0.0);
 
     std::map<int, visual_marker_mapping::CameraModel> cameraModelById;
     std::vector<int> laser_sensor_ids;
@@ -64,8 +64,8 @@ struct CalibrationData
 
     std::map<std::uint32_t, Eigen::Vector3d> reconstructed_map_points;
     std::map<int, visual_marker_mapping::ReconstructedTag> reconstructed_tags;
-	
-	std::map<int, LocationInfo> optional_location_infos;
+
+    std::map<int, LocationInfo> optional_location_infos;
 };
 }
 

@@ -1,13 +1,14 @@
 #include "multi_dof_kinematic_calibration/CalibrationDataIO.h"
 #include "visual_marker_mapping/DetectionIO.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <Eigen/Core>
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "visual_marker_mapping/CameraUtilities.h"
 #include "visual_marker_mapping/ReconstructionIO.h"
+#include <random>
 
 namespace
 {
@@ -59,13 +60,21 @@ multi_dof_kinematic_calibration::Scan3D loadScan(const std::string& filename)
     //	}
     return ret;
 }
+void addNoiseToScan(multi_dof_kinematic_calibration::Scan3D& scan, double std_dev)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<double> d(0, std_dev);
+    for (int i = 0; i < scan.points.cols(); i++)
+        scan.points.col(i) += Eigen::Vector3d(d(gen), d(gen), d(gen));
+}
 }
 
 
 namespace multi_dof_kinematic_calibration
 {
 //----------------------------------------------------------------------------
-CalibrationData::CalibrationData(const std::string& filePath)
+CalibrationData::CalibrationData(const std::string& filePath, double laser_noise_std_dev)
 {
     namespace pt = boost::property_tree;
     pt::ptree rootNode;
@@ -253,8 +262,10 @@ CalibrationData::CalibrationData(const std::string& filePath)
             if (scan_path.is_relative())
                 scan_path = boost::filesystem::path(filePath).parent_path() / scan_path;
 
-            calib_frame.sensor_id_to_laser_scan_3d.emplace(
-                sensor_id, std::make_shared<Scan3D>(loadScan(scan_path.string())));
+            auto scan = std::make_shared<Scan3D>(loadScan(scan_path.string()));
+            if (laser_noise_std_dev > 0.0)
+                addNoiseToScan(*scan, laser_noise_std_dev);
+            calib_frame.sensor_id_to_laser_scan_3d.emplace(sensor_id, std::move(scan));
             // std::cout << "Loaded: " << scan_path.string() << std::endl;
         }
 
