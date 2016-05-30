@@ -221,7 +221,7 @@ struct MarkerPoint2PlaneError
 
         T td = laser_point_in_world.transpose() * marker_plane_n.cast<T>();
 
-        eMap3(residuals) = (marker_plane_n.cast<T>() * (T(marker_plane_d) - td)) / T(0.01);
+        *residuals = (T(marker_plane_d) - td) / T(0.01);
         return true;
     }
 
@@ -233,7 +233,7 @@ struct MarkerPoint2PlaneError
         auto cost_function = new ceres::DynamicAutoDiffCostFunction<MarkerPoint2PlaneError, 4>(
             new MarkerPoint2PlaneError(marker_to_world, laser_point, chain));
         chain.addParametersToCostFn(cost_function);
-        cost_function->SetNumResiduals(3);
+        cost_function->SetNumResiduals(1);
         return cost_function;
     }
 
@@ -1194,7 +1194,7 @@ void Calibrator::calibrate(const std::string& visualization_filename)
     {
         for (int its = 0; its < 5; its++)
         {
-            optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
+			optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
             std::cout << "-------------------------------------------------------------------------"
                       << std::endl;
         }
