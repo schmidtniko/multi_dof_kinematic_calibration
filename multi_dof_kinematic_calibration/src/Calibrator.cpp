@@ -1320,7 +1320,8 @@ void Calibrator::calibrate(const std::string& visualization_filename)
                     {
                         const Eigen::Vector3d pw
                             = cposeTransformPoint<double>(sensor_to_world, scan->points.col(sp));
-                        dbg_out.addPoint(pw);
+                        if (!std::isnan(pw.x()))
+                            dbg_out.addPoint(pw);
                     }
                 }
             }
