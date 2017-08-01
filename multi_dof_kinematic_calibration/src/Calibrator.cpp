@@ -2,25 +2,25 @@
 
 #include <Eigen/Geometry>
 
-#include "visual_marker_mapping/ReconstructionIO.h"
+#include "visual_marker_mapping/CameraUtilities.h"
 #include "visual_marker_mapping/DetectionIO.h"
 #include "visual_marker_mapping/EigenCVConversions.h"
 #include "visual_marker_mapping/PropertyTreeUtilities.h"
-#include "visual_marker_mapping/CameraUtilities.h"
+#include "visual_marker_mapping/ReconstructionIO.h"
 
 #include "multi_dof_kinematic_calibration/CeresUtil.h"
 
-#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <ceres/version.h>
 
-#include <iostream>
-#include <fstream>
 #include "multi_dof_kinematic_calibration/DebugVis.h"
+#include <fstream>
+#include <iostream>
 
 template <typename Map1, typename Map2, typename F>
 void iterateMatches(const Map1& m1, const Map2& m2, F&& f)
@@ -262,18 +262,17 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
     else if (mode == OptimizationMode::ONLY_FULL)
         std::cout << "Performing full optimization only" << std::endl;
 
-//    auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
-//    {
-//        return cposeInv<double>(pose);
-//    };
-//    auto poseAdd = [](const Eigen::Matrix<double, 7, 1>& x,
-//        const Eigen::Matrix<double, 7, 1>& d) -> Eigen::Matrix<double, 7, 1>
-//    {
-//        return cposeAdd<double>(x, d);
-//    };
+    //    auto poseInverse = [](const Eigen::Matrix<double, 7, 1>& pose)
+    //    {
+    //        return cposeInv<double>(pose);
+    //    };
+    //    auto poseAdd = [](const Eigen::Matrix<double, 7, 1>& x,
+    //        const Eigen::Matrix<double, 7, 1>& d) -> Eigen::Matrix<double, 7, 1>
+    //    {
+    //        return cposeAdd<double>(x, d);
+    //    };
 
-    auto pathFromRootToJoint = [this](const std::string& start) -> std::vector<size_t>
-    {
+    auto pathFromRootToJoint = [this](const std::string& start) -> std::vector<size_t> {
         std::string cur_joint_name = start;
         std::vector<size_t> joint_list;
         if (cur_joint_name == "base")
@@ -582,6 +581,8 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
 
     std::cout << "Building optimization problems..." << std::endl;
 
+    int total_laser_correspondences = 0;
+
     // curImage=0;
     for (size_t i = 0; i < calib_data.calib_frames.size(); i++)
     {
@@ -689,8 +690,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                     = calib_data.calib_frames[i].cam_id_to_observations[camera_id];
                 const auto& world_points = calib_data.reconstructed_map_points;
                 iterateMatches(camera_observations, world_points,
-                    [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
-                    {
+                    [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp) {
                         // check origin pose
                         // {
                         //     OpenCVReprojectionError repErr(tagObs.corners[c],
@@ -709,15 +709,13 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                                       : nullptr, // new ceres::CauchyLoss(3),
                             parameter_blocks);
 
-                        repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double
-                            {
-                                Eigen::Vector2d err;
-                                fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
-                                return err.squaredNorm();
-                            });
+                        repErrorFns.push_back([parameter_blocks, fullCostFn]() -> double {
+                            Eigen::Vector2d err;
+                            fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
+                            return err.squaredNorm();
+                        });
                         repErrorFnsByCam[camera_id].push_back(
-                            [parameter_blocks, fullCostFn]() -> double
-                            {
+                            [parameter_blocks, fullCostFn]() -> double {
                                 Eigen::Vector2d err;
                                 fullCostFn->Evaluate(&parameter_blocks[0], &err(0), nullptr);
                                 return err.squaredNorm();
@@ -801,15 +799,16 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                     //			}
 
                     corresp++;
+                    total_laser_correspondences++;
                 }
                 // std::cout << "Corresp : "<< corresp << std::endl;
             }
         }
     }
     std::cout << "Building optimization problems...done!" << std::endl;
+    std::cout << "Laser correspondence count: " << total_laser_correspondences << std::endl;
 
-    auto computeRMSE = [&repErrorFns]() -> double
-    {
+    auto computeRMSE = [&repErrorFns]() -> double {
         if (repErrorFns.empty())
             return 0.0;
 
@@ -823,8 +822,20 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         }
         return sqrt(rms / repErrorFns.size());
     };
-    auto computeRMSEByCam = [&repErrorFnsByCam](int cam) -> double
-    {
+    auto computeMedianError = [&repErrorFns]() -> double {
+        if (repErrorFns.empty())
+            return 0.0;
+
+        std::vector<double> errors;
+        for (const auto& errFn : repErrorFns)
+        {
+            const double sqrError = errFn();
+            errors.push_back(sqrError);
+        }
+        std::sort(errors.begin(), errors.end());
+        return sqrt(errors[errors.size() / 2]);
+    };
+    auto computeRMSEByCam = [&repErrorFnsByCam](int cam) -> double {
         if (repErrorFnsByCam[cam].empty())
             return 0.0;
 
@@ -875,7 +886,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         // std::cout << summary.FullReport() << std::endl;
 
         std::cout << "    Simple training reprojection error RMS: " << computeRMSE() << " px"
-                  << std::endl;
+                  << " Median: " << computeMedianError() << " px" << std::endl;
         std::cout << "Solving simple optimization problem...done!" << std::endl;
     }
 
@@ -890,7 +901,7 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
         // std::cout << summary2.FullReport() << std::endl;
 
         std::cout << "    Full training reprojection error RMS: " << computeRMSE() << " px"
-                  << std::endl;
+                  << " Median: " << computeMedianError() << " px" << std::endl;
         std::cout << "Solving full optimization problem...done!" << std::endl;
     }
 
@@ -1148,8 +1159,7 @@ void Calibrator::calibrate(const std::string& visualization_filename)
     // optimization_set.insert(start_joint);
     while (!frontier.empty())
     {
-        std::function<void(size_t)> expandToNext1DofJoint = [&](size_t j)
-        {
+        std::function<void(size_t)> expandToNext1DofJoint = [&](size_t j) {
             if ((calib_data.joints[j].type == "1_dof_joint") && (!optimization_set.count(j)))
             {
                 // ptimizeUpToJoint(j, false, OptimizationMode::SIMPLE_THEN_FULL);
@@ -1192,7 +1202,7 @@ void Calibrator::calibrate(const std::string& visualization_filename)
     // correspondences can improve
     if (!calib_data.laser_sensor_ids.empty())
     {
-        for (int its = 0; its < 5; its++)
+        for (int its = 0; its < 20; its++)
         {
 			optimizeUpToJoint(optimization_set, OptimizationMode::ONLY_FULL);
             std::cout << "-------------------------------------------------------------------------"
@@ -1321,8 +1331,7 @@ bool Calibrator::computeRelativeCameraPoseFromImg(size_t camera_id, size_t calib
         = calib_data.calib_frames[calibration_frame_id].cam_id_to_observations[camera_id];
     const auto& world_points = calib_data.reconstructed_map_points;
     iterateMatches(camera_observations, world_points,
-        [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp)
-        {
+        [&](int /*point_id*/, const Eigen::Vector2d& cp, const Eigen::Vector3d& wp) {
             observations2D.push_back(cp);
             markerCorners3D.push_back(wp);
         });
