@@ -674,16 +674,21 @@ void Calibrator::optimizeUpToJoint(const std::set<size_t>& optimization_set, Opt
                 const int camera_id = sensor_id;
                 const auto& cam_model = calib_data.cameraModelById[camera_id];
 
-                const Eigen::Matrix<double, 7, 1> world_to_cam
-                    = reconstructedPoses[std::make_pair(i, camera_id)];
+                if (reconstructedPoses.count(std::make_pair(i, camera_id)))
+                {
+                    const Eigen::Matrix<double, 7, 1> world_to_cam
+                        = reconstructedPoses[std::make_pair(i, camera_id)];
 
-                // location_id_to_location[calib_data.calib_frames[i].location_id] = world_to_cam;
-                // //////// hack
+                    // location_id_to_location[calib_data.calib_frames[i].location_id] =
+                    // world_to_cam;
+                    // //////// hack
 
-                auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
-                problem_simple.AddResidualBlock(simpleCostFn,
-                    robustify ? new ceres::HuberLoss(1.0) : nullptr, // new ceres::CauchyLoss(3),
-                    parameter_blocks);
+                    auto simpleCostFn = KinematicChainPoseError::Create(world_to_cam, chain);
+                    problem_simple.AddResidualBlock(simpleCostFn,
+                        robustify ? new ceres::HuberLoss(1.0)
+                                  : nullptr, // new ceres::CauchyLoss(3),
+                        parameter_blocks);
+                }
 
                 // const auto& cam_model = id_to_cam_model.second;
                 const auto& camera_observations
@@ -1105,19 +1110,24 @@ void Calibrator::calibrate(const std::string& visualization_filename)
 
             Eigen::Quaterniond q;
             Eigen::Vector3d t;
-            computeRelativeCameraPoseFromImg(
+            bool success = computeRelativeCameraPoseFromImg(
                 camera_id, i, cam_model.getK(), cam_model.distortionCoefficients, q, t);
+            if (!success)
+            {
+                std::cerr << "Initialization failed" << std::endl;
+            }
+            else
+            {
+                const auto cam_pose = cmakePose<double>(t, q);
 
+                //            DebugVis dbg;
+                //            dbg.cam.setQuat(q);
+                //            dbg.cam.t = t;
+                //      if (ptuData.ptuImagePoses[i].cameraId==0)
+                //        debugVis.push_back(dbg);
 
-            const auto cam_pose = cmakePose<double>(t, q);
-
-            //            DebugVis dbg;
-            //            dbg.cam.setQuat(q);
-            //            dbg.cam.t = t;
-            //      if (ptuData.ptuImagePoses[i].cameraId==0)
-            //        debugVis.push_back(dbg);
-
-            reconstructedPoses[std::make_pair(i, camera_id)] = cam_pose;
+                reconstructedPoses[std::make_pair(i, camera_id)] = cam_pose;
+            }
         }
     }
 
