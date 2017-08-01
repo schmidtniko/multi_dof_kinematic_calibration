@@ -242,7 +242,7 @@ To run our software on any of the datasets, you can proceed in exactly the same 
 
 If you use our work, please cite us:
 
-TODO
+Practical Calibration of Actuated Multi-DOF Camera Systems. International Conference on Pattern Recognition Systems (ICPRS-17), 2017, IET. Juli 2017
 
 # References
 
