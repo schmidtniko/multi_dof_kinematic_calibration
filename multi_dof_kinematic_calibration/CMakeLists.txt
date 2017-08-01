@@ -7,7 +7,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang") # Works for Clang and AppleClang
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
-add_library(libmulti_dof_kinematic_calibration
+add_library(multi_dof_kinematic_calibration_lib
                src/CalibrationDataIO.cpp
                src/Calibrator.cpp
                include/multi_dof_kinematic_calibration/CeresUtil.h
@@ -15,14 +15,14 @@ add_library(libmulti_dof_kinematic_calibration
                include/multi_dof_kinematic_calibration/CalibrationDataIO.h
                include/multi_dof_kinematic_calibration/DebugVis.h)
            
-set_property(TARGET libmulti_dof_kinematic_calibration PROPERTY CXX_STANDARD 11)
-set_property(TARGET libmulti_dof_kinematic_calibration PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET multi_dof_kinematic_calibration_lib PROPERTY CXX_STANDARD 11)
+set_property(TARGET multi_dof_kinematic_calibration_lib PROPERTY CXX_STANDARD_REQUIRED ON)
 
-target_include_directories(libmulti_dof_kinematic_calibration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_include_directories(multi_dof_kinematic_calibration_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
                     ../visual_marker_mapping/visual_marker_mapping/include/
                     ${Boost_INCLUDE_DIRS})
                 
-target_link_libraries(libmulti_dof_kinematic_calibration PUBLIC
+target_link_libraries(multi_dof_kinematic_calibration_lib PUBLIC
                       visual_marker_mapping_lib
                       apriltags
                       ${OpenCV_LIBS}
@@ -39,5 +39,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/in
                     ../visual_marker_mapping/visual_marker_mapping/include/
                     ${Boost_INCLUDE_DIRS})
                 
-target_link_libraries(${PROJECT_NAME} libmulti_dof_kinematic_calibration)
+target_link_libraries(${PROJECT_NAME} multi_dof_kinematic_calibration_lib)
 
