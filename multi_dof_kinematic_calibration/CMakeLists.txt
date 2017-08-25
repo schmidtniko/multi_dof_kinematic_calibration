@@ -26,7 +26,8 @@ target_link_libraries(multi_dof_kinematic_calibration_lib PUBLIC
                       visual_marker_mapping_lib
                       apriltags
                       ${OpenCV_LIBS}
-                      ${Boost_LIBRARIES})
+                      ${Boost_LIBRARIES}
+					  ${GLOG_LIBRARY})
 
                 
 
