@@ -20,15 +20,16 @@ For both, the calibration of cameras and the calibration of laser range finders,
 * [Ceres Solver](http://ceres-solver.org/)
 * [OpenCV](http://opencv.org/)
 * [Eigen 3.0](http://eigen.tuxfamily.org/)
+* [Boost](http://www.boost.org/)
 * [Visual Marker Mapping Tool](https://github.com/cfneuhaus/visual_marker_mapping)
 
 In Ubuntu, the first three dependencies can be installed using the command
 
-* `apt-get install libceres-dev libsuitesparse-dev libopencv-dev`
+* `apt-get install libceres-dev libsuitesparse-dev libopencv-dev libeigen3-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-system-dev python-pip`
 
 In Arch Linux, use:
 
-* `pacman -S eigen opencv`
+* `pacman -S eigen opencv boost python-pip`
 
 * Ceres is available as an AUR package called [ceres-solver](https://aur.archlinux.org/packages/ceres-solver/).
 
