@@ -42,7 +42,9 @@ target_include_directories(multi_dof_kinematic_calibration_lib PUBLIC ${CMAKE_CU
 target_link_libraries(multi_dof_kinematic_calibration_lib PUBLIC
                       ${OpenCV_LIBS}
                       ${Boost_LIBRARIES}
-					  ${GLOG_LIBRARY} ${FLEP_PACKAGE_DEPS})
+                      ${GLOG_LIBRARY}
+                      Eigen3::Eigen
+                      ${FLEP_PACKAGE_DEPS})
 
                 
 
