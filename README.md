@@ -34,36 +34,35 @@ In Arch Linux, use:
 
 The [visual_marker_mapping](https://github.com/cfneuhaus/visual_marker_mapping) dependency is automatically pulled in as a git submodule.
 
-## Cloning
-
-Via HTTPS:
-
-`git clone --recursive https://github.com/cfneuhaus/multi_dof_kinematic_calibration.git`
-
-Via SSH:
-
-`git clone --recursive git@github.com:cfneuhaus/multi_dof_kinematic_calibration.git`
-
 ## Building
 
 You need at least
-* [CMake 3.0](https://cmake.org/)
+* [CMake 3.1](https://cmake.org/)
 * GCC 4.7 (?)
+* Flep (see https://github.com/cfneuhaus/flep)
 
 If you are using Ubuntu, this means that you need at least Ubuntu 14.04.
 
 ### Linux/Mac
 
+1. Install flep
 ```
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j5
+git clone https://github.com/cfneuhaus/flep
+pip install --user ./flep
 ```
 
-In order to get easy access to the built binaries, we provide a ROS-style setup.sh file, that adds the build/bin directory to your PATH environment variable. Use
 ```
-source build/setup.sh
+mkdir flep_ws && cd flep_ws && flep init
+cd src
+git clone https://github.com/cfneuhaus/multi_dof_kinematic_calibration.git
+flep get_deps
+flep cmake -DCMAKE_BUILD_TYPE=Release
+flep make -j5
+```
+
+In order to get easy access to the built binaries, we provide a ROS-style setup.sh file, that adds the flep_ws/build/bin directory to your PATH environment variable. Use
+```
+source flep_ws/build/setup.sh
 ```
 to run it. If you prefer not to do this step, you obviously need to provide the full path to the binaries, when running the applications.
 
