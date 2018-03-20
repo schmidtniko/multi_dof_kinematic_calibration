@@ -45,11 +45,13 @@ If you are using Ubuntu, this means that you need at least Ubuntu 14.04.
 
 ### Linux/Mac
 
-1. Install flep
+1. Install flep:
 ```
 git clone https://github.com/cfneuhaus/flep
 pip install --user ./flep
 ```
+
+2. Install multi_dof_kinematic calibration and deps:
 
 ```
 mkdir flep_ws && cd flep_ws && flep init
