@@ -44,6 +44,7 @@ target_link_libraries(multi_dof_kinematic_calibration_lib PUBLIC
                       ${Boost_LIBRARIES}
                       ${GLOG_LIBRARY}
                       Eigen3::Eigen
+                      visual_marker_mapping_lib
                       ${FLEP_PACKAGE_DEPS})
 
                 
@@ -62,3 +63,8 @@ target_link_libraries(${PROJECT_NAME} multi_dof_kinematic_calibration_lib)
 
 configure_file(util/setup.sh setup.sh COPYONLY)
 configure_file(visualize_results.py bin/visualize_results.py COPYONLY)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC EIGEN_DONT_ALIGN_STATICALLY)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC _USE_MATH_DEFINES)
+endif()
