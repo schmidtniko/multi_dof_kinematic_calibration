@@ -7,7 +7,8 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang") # Works for Clang and AppleClang
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
-find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 
 # Boost
@@ -21,6 +22,9 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 endif(WIN32)
 
 find_package(Ceres REQUIRED)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/visual_marker_mapping/visual_marker_mapping/include)
+add_subdirectory(visual_marker_mapping)
 
 # bin dir for executable targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -43,9 +47,8 @@ target_link_libraries(multi_dof_kinematic_calibration_lib PUBLIC
                       ${OpenCV_LIBS}
                       ${Boost_LIBRARIES}
                       ${GLOG_LIBRARY}
-                      Eigen3::Eigen
                       visual_marker_mapping_lib
-                      ${FLEP_PACKAGE_DEPS})
+ )
 
                 
 
@@ -57,7 +60,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${Boost_INCLUDE_DIRS})
                 
-target_link_libraries(${PROJECT_NAME} multi_dof_kinematic_calibration_lib)
+target_link_libraries(${PROJECT_NAME} multi_dof_kinematic_calibration_lib visual_marker_mapping_lib)
 
 
 
